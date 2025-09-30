@@ -1,0 +1,89 @@
+# ============= #
+# Unity核心忽略项 #
+# ============= #
+[Ll]ibrary/
+[Tt]emp/
+[Oo]bj/
+[Bb]uild/
+[Bb]uilds/
+/[Aa]ssets/AssetStoreTools*
+
+# ================ #
+# 自动生成文件/目录 #
+# ================ #
+*.csproj
+*.unityproj
+*.sln
+*.suo
+*.user
+*.userprefs
+*.pidb
+*.booproj
+.vs/
+.gradle/
+ExportedObj/
+
+# =============== #
+# Unity编辑器文件 #
+# =============== #
+/ProjectSettings/*
+!ProjectSettings/InputManager.asset
+!ProjectSettings/TagManager.asset
+!ProjectSettings/ProjectVersion.txt
+/UserSettings/
+
+# ============================ #
+# 资源元数据和中间文件 (需保留.meta) #
+# ============================ #
+[Aa]ssets/**/*.tmp
+[Aa]ssets/**/*.TMP
+[Aa]ssets/**/*.bak
+[Aa]ssets/**/*.BAK
+[Aa]ssets/**/*.unitypackage
+
+# ================== #
+# 特定插件/包管理器忽略 #
+# ================== #
+/[Pp]ackages*/
+!/[Pp]ackages/manifest.json
+!/[Pp]ackages/packages-lock.json
+
+# =============== #
+# 编译平台相关文件 #
+# =============== #
+[Aa]ssets/StreamingAssets/*.meta
+[Aa]ssets/StreamingAssets/aa/
+
+# ========================== #
+# 特定工具 & 环境文件 #
+# ========================== #
+.metadata
+.svn/
+__MACOSX/
+.DS_Store*
+Thumbs.db
+Desktop.ini
+
+# =============== #
+# 日志与崩溃报告 #
+# =============== #
+/[Ll]ogs/
+/[Mm]emoryCaptures/
+/[Cc]rashReports/
+/[Ss]tackTraces/
+
+# ======================== #
+# 版本控制配置文件（保留必要项） #
+# ======================== #
+/.git*
+!.gitignore
+!.gitattributes
+/.collabignore
+
+# ============== #
+# 自定义匹配规则 #
+# ============== #
+*.private
+*.private.meta
+*~
+*.lock
