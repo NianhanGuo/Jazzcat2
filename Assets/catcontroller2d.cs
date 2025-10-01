@@ -13,7 +13,8 @@ public class CatController2D : MonoBehaviour
     public float jumpForce = 11f;
     public float coyoteTime = 0.12f;      // allow jump shortly after leaving ground
     public float jumpBuffer = 0.12f;      // allow jump pressed slightly before landing
-    public float cutJumpGravityMult = 2f; // higher gravity when releasing jump early
+    public float cutJumpGravityMult = 2f; // stronger gravity when releasing jump early
+    public float fallGravityMult = 1.3f;  // smoother fall gravity (tweak this!)
 
     [Header("Ground Check")]
     public LayerMask groundMask;          // set to "Ground" in Inspector
@@ -33,26 +34,24 @@ public class CatController2D : MonoBehaviour
     {
         rb = GetComponent<Rigidbody2D>();
         col = GetComponent<Collider2D>();
-        // basic RB setup (you can tweak in Inspector)
         rb.constraints = RigidbodyConstraints2D.FreezeRotation;
-        if (rb.gravityScale < 2f) rb.gravityScale = 3.5f;
+        if (rb.gravityScale < 2f) rb.gravityScale = 3.5f; // base gravity
     }
 
     void Update()
     {
         // 1) Input
-        xInput = Input.GetAxisRaw("Horizontal"); // A/D or ←/→
+        xInput = Input.GetAxisRaw("Horizontal");
         if (Input.GetButtonDown("Jump")) bufferCounter = jumpBuffer;
         jumpHeld = Input.GetButton("Jump");
 
-        // 2) Ground check (simple circle below feet)
+        // 2) Ground check
         Vector2 origin = (Vector2)transform.position + checkOffset;
         isGrounded = Physics2D.OverlapCircle(origin, checkRadius, groundMask);
 
         // 3) Coyote / Buffer timers
         if (isGrounded) coyoteCounter = coyoteTime;
         else            coyoteCounter -= Time.deltaTime;
-
         if (bufferCounter > 0) bufferCounter -= Time.deltaTime;
 
         // 4) Try jump
@@ -62,16 +61,22 @@ public class CatController2D : MonoBehaviour
             bufferCounter = 0;
         }
 
-        // 5) Better-jump: cut height if jump is released on the way up
-        if (!jumpHeld && rb.linearVelocity.y > 0f)
+        // 5) Better jump + smooth fall
+        if (rb.linearVelocity.y > 0f && !jumpHeld)
         {
+            // short hop: cut jump height if released early
             rb.linearVelocity = new Vector2(rb.linearVelocity.x, rb.linearVelocity.y * 0.98f);
-            rb.gravityScale = Mathf.Max(3.5f, rb.gravityScale) * cutJumpGravityMult;
+            rb.gravityScale = 3.5f * cutJumpGravityMult;
+        }
+        else if (rb.linearVelocity.y < 0f && !isGrounded)
+        {
+            // falling: use smoother fall gravity
+            rb.gravityScale = 3.5f * fallGravityMult;
         }
         else
         {
-            // restore normal gravity while falling or grounded
-            rb.gravityScale = Mathf.Max(3.5f, rb.gravityScale / cutJumpGravityMult);
+            // normal gravity when rising with jump held or grounded
+            rb.gravityScale = 3.5f;
         }
     }
 
@@ -88,13 +93,11 @@ public class CatController2D : MonoBehaviour
 
     void Jump()
     {
-        // reset vertical speed so short hops are consistent
         rb.linearVelocity = new Vector2(rb.linearVelocity.x, 0f);
         rb.AddForce(Vector2.up * jumpForce, ForceMode2D.Impulse);
         coyoteCounter = 0f;
     }
 
-    // gizmo to see ground check in Scene view
     void OnDrawGizmosSelected()
     {
         Gizmos.color = Color.yellow;
