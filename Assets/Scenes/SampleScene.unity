@@ -270,6 +270,35 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 72447520}
   m_CullTransparentMesh: 1
+--- !u!1 &240175336 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 8778807779659395066, guid: 9c2feca293dce400eacbeaf43aca4a7a, type: 3}
+  m_PrefabInstance: {fileID: 3454744715290576175}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &240175342
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 240175336}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5464639c8a6c84bc8bb09a5044f36b88, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  type: 0
+  normalColor: {r: 1, g: 1, b: 1, a: 1}
+  crackingColor: {r: 1, g: 0.55, b: 0.15, a: 1}
+  boostColor: {r: 0.3, g: 0.6, b: 1, a: 1}
+  stickyColor: {r: 0.25, g: 0.9, b: 0.4, a: 1}
+  trapColor: {r: 0.05, g: 0.05, b: 0.05, a: 1}
+  warnTime: 0.9
+  fadeOut: 0.35
+  blinkSpeed: 9
+  boostImpulse: 12
+  stickyFriction: 12
+  playerTag: Player
 --- !u!1 &358533033
 GameObject:
   m_ObjectHideFlags: 0
@@ -1048,7 +1077,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   notePrefab: {fileID: 668071173}
-  spawnInterval: 2
+  spawnInterval: 1
   xRange: 8
 --- !u!4 &616274450
 Transform:
@@ -1350,7 +1379,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   platformPrefab: {fileID: 8778807779659395066, guid: 9c2feca293dce400eacbeaf43aca4a7a, type: 3}
-  spawnEverySeconds: {x: 1.5, y: 3}
+  spawnEverySeconds: {x: 0.7, y: 2.5}
   widthRange: {x: 2.5, y: 8}
   height: 0.3
   downSpeed: 1.8
@@ -1360,6 +1389,11 @@ MonoBehaviour:
   minHorizontalSeparation: 2.5
   separationPerWidth: 0.35
   maxPositionTries: 6
+  wNormal: 14
+  wCracking: 4
+  wBoost: 3
+  wSticky: 3
+  wTrap: 0.9
 --- !u!4 &673383905
 Transform:
   m_ObjectHideFlags: 0
@@ -2662,7 +2696,10 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 8778807779659395066, guid: 9c2feca293dce400eacbeaf43aca4a7a, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 240175342}
   m_SourcePrefab: {fileID: 100100000, guid: 9c2feca293dce400eacbeaf43aca4a7a, type: 3}
 --- !u!1001 &3801961300862669408
 PrefabInstance:
