@@ -196,7 +196,7 @@ MonoBehaviour:
   boostColor: {r: 0.2921858, g: 0.38017544, b: 0.9245283, a: 1}
   stickyColor: {r: 0.25, g: 0.9, b: 0.4, a: 1}
   trapColor: {r: 0.05, g: 0.05, b: 0.05, a: 1}
-  warnTime: 1.5
+  warnTime: 2
   fadeOut: 0.35
   blinkSpeed: 9
   boostImpulse: 30
