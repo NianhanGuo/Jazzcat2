@@ -4,40 +4,47 @@ using UnityEngine.SceneManagement;
 public class GameOverUI : MonoBehaviour
 {
     [Header("Assign in Inspector")]
-    public GameObject gameOverPanel; // 指到 GameOverPanel
+    public GameObject gameOverPanel; // your GameOverPanel container
 
     bool shown;
 
     void Awake()
     {
         if (gameOverPanel != null) gameOverPanel.SetActive(false);
-        Time.timeScale = 1f; // 确保进入场景时是正常速度
+        Time.timeScale = 1f; // normal speed on scene load
+
+        // start counter fresh on load (safe even if NoteCounter is not present)
+        if (NoteCounter.Instance != null)
+            NoteCounter.Instance.ResetCounter();
     }
 
     public void Show()
     {
         if (shown) return;
         shown = true;
+
         if (gameOverPanel != null) gameOverPanel.SetActive(true);
-        Time.timeScale = 0f; // 暂停游戏（UI 仍然响应）
+
+        // stop gameplay & freeze the counter (no more increments)
+        if (NoteCounter.Instance != null)
+            NoteCounter.Instance.Freeze(true);
+
+        Time.timeScale = 0f; // pause game while UI is up
     }
 
-    // 绑定到 Yes 按钮
+    // YES button
     public void OnClickYes()
     {
         Time.timeScale = 1f;
         var idx = SceneManager.GetActiveScene().buildIndex;
-        SceneManager.LoadScene(idx); // 重新加载当前场景
+        SceneManager.LoadScene(idx); // NoteCounter resets in Awake
     }
 
-    // 绑定到 No 按钮
+    // NO button
     public void OnClickNo()
     {
         Time.timeScale = 1f;
-        // 打包后的退出
         Application.Quit();
-
-        // 在编辑器里停止 Play 模式
 #if UNITY_EDITOR
         UnityEditor.EditorApplication.isPlaying = false;
 #endif
