@@ -11,8 +11,6 @@ public class MusicLayerManager : MonoBehaviour
     public MusicClipBank[] libraries = new MusicClipBank[6];
     public float[] randomAnyWeights = new float[] { 4, 3, 2, 2, 1, 1 };
 
-    public int maxLeadLayers = 1;
-    public int maxLayers = 8;
     public float fadeInTime = 0.8f;
     public float fadeOutTime = 1.0f;
 
@@ -72,27 +70,56 @@ public class MusicLayerManager : MonoBehaviour
             ? WeightedPickLibrary(false, false)
             : (int)requested;
 
-        bool needNonLead = CountActiveLeads() >= maxLeadLayers;
-        if (!TryCreateNewLayer(libIndex, needNonLead))
+        bool isLeadAllowed = CountActiveLeads() < 1;
+        bool isNonLeadAllowed = CountActiveNonLeads() < 2;
+
+        if (isLeadAllowed)
         {
-            if (needNonLead)
+            TryCreateNewLayer(libIndex, false, requireLead: true);
+        }
+        else if (isNonLeadAllowed)
+        {
+            TryCreateNewLayer(libIndex, true, requireLead: false);
+        }
+
+        EnforceLayerLimits();
+    }
+
+    void EnforceLayerLimits()
+    {
+        int leadCount = 0;
+        List<ActiveLayer> nonLeads = new List<ActiveLayer>();
+        foreach (var l in layers)
+        {
+            if (l.isLead) leadCount++;
+            else nonLeads.Add(l);
+        }
+
+        if (leadCount > 1)
+        {
+            for (int i = leadCount - 1; i >= 1; i--)
             {
-                int alt = WeightedPickLibrary(true, true);
-                TryCreateNewLayer(alt, true);
+                var layer = layers.FindLast(l => l.isLead);
+                if (layer != null) StartCoroutine(FadeOutAndRemove(layer));
             }
-            else
+        }
+
+        if (nonLeads.Count > 2)
+        {
+            int removeCount = nonLeads.Count - 2;
+            for (int i = 0; i < removeCount; i++)
             {
-                int alt = WeightedPickLibrary(false, false);
-                TryCreateNewLayer(alt, false);
+                var layer = nonLeads[rng.Next(0, nonLeads.Count)];
+                nonLeads.Remove(layer);
+                StartCoroutine(FadeOutAndRemove(layer));
             }
         }
     }
 
-    bool TryCreateNewLayer(int libIndex, bool requireNonLead)
+    bool TryCreateNewLayer(int libIndex, bool requireNonLead, bool requireLead = false)
     {
         if (!HasClips(libIndex)) return false;
         var set = libraries[libIndex];
-
         List<int> candidates = new List<int>();
         if (set.variants != null)
         {
@@ -102,23 +129,11 @@ public class MusicLayerManager : MonoBehaviour
                 if (!c) continue;
                 bool isLead = set.GetIsLead(i);
                 if (requireNonLead && isLead) continue;
+                if (requireLead && !isLead) continue;
                 candidates.Add(i);
             }
         }
         if (candidates.Count == 0) return false;
-
-        ActiveLayer existing = layers.Find(l => l.libIndex == libIndex && l.isLead == set.GetIsLead(l.variantIndex));
-        if (existing != null)
-        {
-            EvolveLayer(existing, keepLeadType: true);
-            return true;
-        }
-
-        if (layers.Count >= maxLayers)
-        {
-            int idx = PickKickIndex();
-            StartCoroutine(FadeOutAndRemove(layers[idx]));
-        }
 
         int varIndex = candidates[rng.Next(0, candidates.Count)];
         var clip = set.variants[varIndex];
@@ -157,18 +172,6 @@ public class MusicLayerManager : MonoBehaviour
 
         StartCoroutine(FadeTo(src, 0f, targetVol, fadeInTime));
         return true;
-    }
-
-    int PickKickIndex()
-    {
-        var nonLeads = new List<int>();
-        for (int i = 0; i < layers.Count; i++)
-            if (!layers[i].isLead) nonLeads.Add(i);
-
-        if (nonLeads.Count > 0)
-            return nonLeads[rng.Next(0, nonLeads.Count)];
-
-        return rng.Next(0, layers.Count);
     }
 
     int WeightedPickLibrary(bool requireNonLead, bool preferNonLeadLibraries)
@@ -227,6 +230,13 @@ public class MusicLayerManager : MonoBehaviour
     {
         int c = 0;
         foreach (var l in layers) if (l.isLead) c++;
+        return c;
+    }
+
+    int CountActiveNonLeads()
+    {
+        int c = 0;
+        foreach (var l in layers) if (!l.isLead) c++;
         return c;
     }
 

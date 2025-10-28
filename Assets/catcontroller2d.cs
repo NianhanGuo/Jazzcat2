@@ -26,6 +26,7 @@ public class CatController2D : MonoBehaviour
     public string jumpStateName = "CatJump";
     [Range(0f, 1f)] public float holdAtNormalizedTime = 0.5f;
     public bool autoFindAnimatorOnChildren = true;
+    public float groundCancelGrace = 0.06f;
 
     [Header("Idle Visual (without Animator)")]
     public SpriteRenderer spriteRenderer;
@@ -46,6 +47,9 @@ public class CatController2D : MonoBehaviour
     bool jumpAnimPlaying;
     bool holdingMidFrame;
     bool animatorEnabledByUs;
+
+    float groundCancelTimer;
+    int jumpStateHash;
 
     Vector2 GetVel() => rb.linearVelocity;
     void SetVel(Vector2 v)
@@ -74,6 +78,8 @@ public class CatController2D : MonoBehaviour
         jumpAnimPlaying = false;
         holdingMidFrame = false;
         animatorEnabledByUs = false;
+        groundCancelTimer = 0f;
+        jumpStateHash = Animator.StringToHash(jumpStateName);
     }
 
     void Start()
@@ -97,6 +103,8 @@ public class CatController2D : MonoBehaviour
         float   castDist  = 0.04f;
         RaycastHit2D hit = Physics2D.BoxCast(boxCenter, boxSize, 0f, Vector2.down, castDist, groundMask);
         isGrounded = hit.collider != null;
+
+        if (groundCancelTimer > 0f) groundCancelTimer -= Time.deltaTime;
 
         if (isGrounded) coyoteCounter = coyoteTime;
         else            coyoteCounter -= Time.deltaTime;
@@ -146,7 +154,7 @@ public class CatController2D : MonoBehaviour
         rb.AddForce(Vector2.up * jumpForce, ForceMode2D.Impulse);
         coyoteCounter = 0f;
 
-        if (animator)
+        if (animator && animator.runtimeAnimatorController)
         {
             bool wasEnabled = animator.enabled;
             if (!wasEnabled)
@@ -156,11 +164,12 @@ public class CatController2D : MonoBehaviour
                 animator.Update(0f);
             }
             animatorEnabledByUs = !wasEnabled;
-
             animator.speed = 1f;
-            animator.Play(jumpStateName, 0, 0f);
+            if (jumpStateHash == 0) jumpStateHash = Animator.StringToHash(jumpStateName);
+            animator.Play(jumpStateHash, 0, 0f);
             jumpAnimPlaying = true;
             holdingMidFrame = false;
+            groundCancelTimer = groundCancelGrace;
         }
     }
 
@@ -168,7 +177,7 @@ public class CatController2D : MonoBehaviour
     {
         if (!animator) return;
 
-        if (isGrounded && jumpAnimPlaying)
+        if (isGrounded && jumpAnimPlaying && groundCancelTimer <= 0f)
         {
             animator.speed = 1f;
             jumpAnimPlaying = false;
@@ -190,7 +199,7 @@ public class CatController2D : MonoBehaviour
         if (!isGrounded && animator.enabled)
         {
             AnimatorStateInfo st = animator.GetCurrentAnimatorStateInfo(0);
-            if (st.IsName(jumpStateName))
+            if (st.shortNameHash == jumpStateHash || st.IsName(jumpStateName))
             {
                 if (!holdingMidFrame && st.normalizedTime >= holdAtNormalizedTime)
                 {
