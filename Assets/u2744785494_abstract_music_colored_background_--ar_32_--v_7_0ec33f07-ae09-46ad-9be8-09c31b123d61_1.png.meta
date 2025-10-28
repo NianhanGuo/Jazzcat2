@@ -147,7 +147,8 @@ TextureImporter:
     secondaryTextures: []
     spriteCustomMetadata:
       entries: []
-    nameFileIdTable: {}
+    nameFileIdTable:
+      u2744785494_abstract_music_colored_background_--ar_32_--v_7_0ec33f07-ae09-46ad-9be8-09c31b123d61_1_0: 3665478043169209534
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

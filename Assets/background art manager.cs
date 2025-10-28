@@ -2,29 +2,22 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-/// <summary>
-/// BackgroundArtManager v2
-/// - Keeps ALL prior behavior (background color lerp + random burst)
-/// - Adds multiple generative patterns. Each time a note is collected, one pattern
-///   is chosen at random so the visuals feel different every time.
-/// - No other scripts need to change. FallingNote just calls OnNoteCollected().
-/// </summary>
 public class BackgroundArtManager : MonoBehaviour
 {
     public static BackgroundArtManager Instance { get; private set; }
 
     [Header("Camera & Color")]
-    public Camera targetCamera;               // Assign Main Camera
-    public Color[] palette =                  // You can edit this in Inspector
+    public Camera targetCamera;
+    public Color[] palette =
     {
-        new Color(0.10f,0.10f,0.14f), // deep blue
-        new Color(0.27f,0.12f,0.38f), // purple
-        new Color(0.05f,0.25f,0.25f), // teal
-        new Color(0.30f,0.10f,0.10f), // wine red
-        new Color(0.20f,0.25f,0.05f), // olive
-        new Color(0.06f,0.06f,0.06f)  // charcoal
+        new Color(0.10f,0.10f,0.14f),
+        new Color(0.27f,0.12f,0.38f),
+        new Color(0.05f,0.25f,0.25f),
+        new Color(0.30f,0.10f,0.10f),
+        new Color(0.20f,0.25f,0.05f),
+        new Color(0.06f,0.06f,0.06f)
     };
-    public float bgLerpDuration = 0.6f;       // Background color transition time
+    public float bgLerpDuration = 0.6f;
 
     [Header("Shapes")]
     [Tooltip("Provide 1+ simple SpriteRenderer-based prefabs (circle, square, triangle).")]
@@ -47,30 +40,42 @@ public class BackgroundArtManager : MonoBehaviour
     [Header("Parent (optional)")]
     public Transform shapesParent;
 
-    // -------- New: pattern knobs (safe defaults) --------
     [Header("Pattern Settings")]
     public int ringPoints = 14;
     public float ringRadiusMin = 2.5f;
     public float ringRadiusMax = 5.5f;
 
     public int spiralPoints = 18;
-    public float spiralTurns = 1.5f;          // how many rotations in spiral
+    public float spiralTurns = 1.5f;
     public float spiralRadius = 5.0f;
 
     public int gridCols = 6;
     public int gridRows = 4;
-    public float gridPadding = 0.8f;          // spacing factor
+    public float gridPadding = 0.8f;
 
-    public int raysCount = 10;                // number of radial rays
-    public float raysLength = 6f;             // visual length (scale x)
-    public float raysWidth = 0.25f;           // visual width (scale y)
+    public int raysCount = 10;
+    public float raysLength = 6f;
+    public float raysWidth = 0.25f;
 
-    public float sweepRows = 4f;              // how many rows in a sweep
-    public float sweepJitter = 0.6f;          // randomness on sweep lines
+    public float sweepRows = 4f;
+    public float sweepJitter = 0.6f;
+
+    [Header("Always-Visible Safeguards")]
+    [Tooltip("Clamp all spawn positions inside camera view with this margin (world units).")]
+    public float viewMargin = 0.25f;
+    [Tooltip("Guarantee at least this scale on X/Y so shapes are not microscopic.")]
+    public float minVisibleScale = 0.35f;
+    [Tooltip("Force spawned shapes to this sorting layer (leave empty to keep prefab's layer).")]
+    public string forceSortingLayerName = "";
+    [Tooltip("If true, override sortingOrder to 'sortingOrder' value below for all spawned shapes.")]
+    public bool forceSortingOrder = false;
+    [Tooltip("If true, ensure final alpha = 1 for spawned SpriteRenderers.")]
+    public bool forceOpaque = true;
 
     // internal
     Color _bgLerpFrom, _bgLerpTo;
     float _bgLerpT;
+    int _spawnedThisCall;
 
     void Awake()
     {
@@ -80,16 +85,20 @@ public class BackgroundArtManager : MonoBehaviour
         if (targetCamera == null) targetCamera = Camera.main;
     }
 
-    /// <summary>
-    /// Call this once each time a note is collected.
-    /// </summary>
     public void OnNoteCollected()
     {
         LerpBackgroundColor();
+
+        _spawnedThisCall = 0;
         PlayRandomPattern();
+
+        // Fallback: if nothing spawned (should be rare), do a tiny burst at center
+        if (_spawnedThisCall == 0)
+        {
+            Pattern_FallbackBurst();
+        }
     }
 
-    // ---------------------- Background color ----------------------
     void LerpBackgroundColor()
     {
         if (targetCamera == null || palette == null || palette.Length == 0) return;
@@ -113,7 +122,6 @@ public class BackgroundArtManager : MonoBehaviour
         }
     }
 
-    // ---------------------- Patterns ----------------------
     enum Pattern { Burst, Ring, Spiral, Rays, Sweep, Grid }
 
     void PlayRandomPattern()
@@ -133,10 +141,11 @@ public class BackgroundArtManager : MonoBehaviour
         }
     }
 
-    // 1) classic burst (kept from the original)
+    // --- Patterns ---
+
     void Pattern_Burst()
     {
-        Bounds b = ViewBounds();
+        Bounds b = ViewBoundsInset();
         for (int i = 0; i < burstCount; i++)
         {
             Vector3 pos = new Vector3(
@@ -151,12 +160,11 @@ public class BackgroundArtManager : MonoBehaviour
         }
     }
 
-    // 2) ring of shapes around the screen center
     void Pattern_Ring()
     {
-        Bounds b = ViewBounds();
+        Bounds b = ViewBoundsInset();
         Vector3 c = b.center;
-        float r = Random.Range(ringRadiusMin, ringRadiusMax);
+        float r = Mathf.Clamp(Random.Range(ringRadiusMin, ringRadiusMax), 0.5f, Mathf.Min(b.extents.x, b.extents.y) - viewMargin);
         int n = Mathf.Max(3, ringPoints);
 
         for (int i = 0; i < n; i++)
@@ -169,10 +177,9 @@ public class BackgroundArtManager : MonoBehaviour
         }
     }
 
-    // 3) spiral from center outward
     void Pattern_Spiral()
     {
-        Bounds b = ViewBounds();
+        Bounds b = ViewBoundsInset();
         Vector3 c = b.center;
         int n = Mathf.Max(6, spiralPoints);
         float turns = Mathf.Max(0.25f, spiralTurns);
@@ -181,7 +188,7 @@ public class BackgroundArtManager : MonoBehaviour
         {
             float t = i / (float)(n - 1);
             float ang = t * turns * Mathf.PI * 2f;
-            float r = t * spiralRadius;
+            float r = t * Mathf.Min(spiralRadius, Mathf.Min(b.extents.x, b.extents.y) - viewMargin);
             Vector3 pos = c + new Vector3(Mathf.Cos(ang) * r, Mathf.Sin(ang) * r, 0f);
 
             float s = Mathf.Lerp(scaleRange.x, scaleRange.y, t);
@@ -190,10 +197,9 @@ public class BackgroundArtManager : MonoBehaviour
         }
     }
 
-    // 4) radial rays (long rectangles). Works even if your prefab is a circle—scale x/y stretches it.
     void Pattern_Rays()
     {
-        Bounds b = ViewBounds();
+        Bounds b = ViewBoundsInset();
         Vector3 c = b.center;
         int n = Mathf.Max(4, raysCount);
 
@@ -201,16 +207,17 @@ public class BackgroundArtManager : MonoBehaviour
         {
             float t = (i / (float)n) * Mathf.PI * 2f + Random.Range(-0.12f, 0.12f);
             float angleDeg = t * Mathf.Rad2Deg;
-            // Scale: long in X, thin in Y
-            Vector2 scl = new Vector2(raysLength * Random.Range(0.75f, 1.15f), raysWidth * Random.Range(0.7f, 1.3f));
+            Vector2 scl = new Vector2(
+                Mathf.Max(minVisibleScale, raysLength * Random.Range(0.75f, 1.15f)),
+                Mathf.Max(minVisibleScale * 0.5f, raysWidth * Random.Range(0.7f, 1.3f))
+            );
             SpawnShape(c, angleDeg, scl, 0.2f, 0f);
         }
     }
 
-    // 5) horizontal sweep—several rows sweeping upward with jitter
     void Pattern_Sweep()
     {
-        Bounds b = ViewBounds();
+        Bounds b = ViewBoundsInset();
         float rows = Mathf.Max(1f, sweepRows);
         int perRow = Mathf.Max(3, burstCount / 2);
 
@@ -223,18 +230,18 @@ public class BackgroundArtManager : MonoBehaviour
                 x += Random.Range(-sweepJitter, sweepJitter);
                 y += Random.Range(-sweepJitter * 0.3f, sweepJitter * 0.3f);
 
+                Vector3 pos = ClampToBounds(new Vector3(x, y, 0f), b);
                 float s = Random.Range(scaleRange.x * 0.8f, scaleRange.y);
                 float up = Random.Range(extraYFloatRange.x * 0.6f, extraYFloatRange.y);
                 float spin = Random.Range(-40f, 40f);
-                SpawnShape(new Vector3(x, y, 0f), 0f, new Vector2(s, s), up, spin);
+                SpawnShape(pos, 0f, new Vector2(s, s), up, spin);
             }
         }
     }
 
-    // 6) sparse grid across the view
     void Pattern_Grid()
     {
-        Bounds b = ViewBounds();
+        Bounds b = ViewBoundsInset();
         int cols = Mathf.Max(2, gridCols);
         int rows = Mathf.Max(2, gridRows);
 
@@ -248,18 +255,31 @@ public class BackgroundArtManager : MonoBehaviour
                 float x = Mathf.Lerp(b.min.x, b.max.x, tx);
                 float y = Mathf.Lerp(b.min.y, b.max.y, ty);
 
-                // add padding & jitter so it looks organic
                 float jitterX = (Random.value - 0.5f) * gridPadding;
                 float jitterY = (Random.value - 0.5f) * gridPadding;
 
+                Vector3 pos = ClampToBounds(new Vector3(x + jitterX, y + jitterY, 0f), b);
                 float s = Random.Range(scaleRange.x * 0.9f, scaleRange.y);
                 float spin = Random.Range(-45f, 45f);
-                SpawnShape(new Vector3(x + jitterX, y + jitterY, 0f), 0f, new Vector2(s, s), 0.5f, spin);
+                SpawnShape(pos, 0f, new Vector2(s, s), 0.5f, spin);
             }
         }
     }
 
-    // ---------------------- Helpers ----------------------
+    void Pattern_FallbackBurst()
+    {
+        Bounds b = ViewBoundsInset();
+        Vector3 c = b.center;
+        for (int i = 0; i < Mathf.Max(3, burstCount / 2); i++)
+        {
+            float ang = Random.Range(0f, 360f);
+            float s = Mathf.Max(minVisibleScale, Random.Range(scaleRange.x, scaleRange.y));
+            SpawnShape(c, ang, new Vector2(s, s), Random.Range(0.3f, 0.8f), Random.Range(-50f, 50f));
+        }
+    }
+
+    // --- Helpers ---
+
     Bounds ViewBounds()
     {
         float ortho = targetCamera.orthographicSize;
@@ -269,31 +289,67 @@ public class BackgroundArtManager : MonoBehaviour
         return new Bounds(c, new Vector3(w, h, 0f));
     }
 
+    Bounds ViewBoundsInset()
+    {
+        Bounds b = ViewBounds();
+        b.Expand(new Vector3(-2f * viewMargin, -2f * viewMargin, 0f));
+        return b;
+    }
+
+    Vector3 ClampToBounds(Vector3 p, Bounds b)
+    {
+        p.x = Mathf.Clamp(p.x, b.min.x, b.max.x);
+        p.y = Mathf.Clamp(p.y, b.min.y, b.max.y);
+        return p;
+    }
+
     void SpawnShape(Vector3 position, float zRotationDeg, Vector2 scaleXY, float floatUp, float spin)
     {
+        if (shapePrefabs == null || shapePrefabs.Length == 0) return;
+
         GameObject prefab = shapePrefabs[Random.Range(0, shapePrefabs.Length)];
         if (prefab == null) return;
 
+        // clamp to visible area
+        position = ClampToBounds(position, ViewBoundsInset());
+
         GameObject go = Instantiate(prefab, position, Quaternion.Euler(0, 0, zRotationDeg), shapesParent);
 
-        // Non-uniform scale supported
-        go.transform.localScale = new Vector3(scaleXY.x, scaleXY.y, 1f);
+        // guarantee minimal visible scale
+        float sx = Mathf.Max(minVisibleScale, scaleXY.x);
+        float sy = Mathf.Max(minVisibleScale, scaleXY.y);
+        go.transform.localScale = new Vector3(sx, sy, 1f);
 
-        // Color + order
+        // color & sorting
         var sr = go.GetComponent<SpriteRenderer>();
         if (sr != null)
         {
             Color baseCol = palette[Random.Range(0, palette.Length)];
             float v = Random.Range(0.8f, 1.25f);
-            sr.color = new Color(baseCol.r * v, baseCol.g * v, baseCol.b * v, 1f);
-            sr.sortingOrder = sortingOrder;
+            Color c = new Color(baseCol.r * v, baseCol.g * v, baseCol.b * v, forceOpaque ? 1f : sr.color.a);
+            sr.color = c;
+
+            if (!string.IsNullOrEmpty(forceSortingLayerName))
+            {
+                sr.sortingLayerName = forceSortingLayerName;
+            }
+            if (forceSortingOrder)
+            {
+                sr.sortingOrder = sortingOrder;
+            }
+            else
+            {
+                sr.sortingOrder = Mathf.Max(sr.sortingOrder, sortingOrder);
+            }
         }
 
-        // Motion/fade
+        // motion/fade
         var fx = go.GetComponent<ShapeBurst>();
         if (fx == null) fx = go.AddComponent<ShapeBurst>();
         fx.life    = shapeLifetime;
         fx.floatUp = floatUp;
         fx.spin    = spin;
+
+        _spawnedThisCall++;
     }
 }

@@ -200,8 +200,8 @@ MonoBehaviour:
   m_fontMaterials: []
   m_fontColor32:
     serializedVersion: 2
-    rgba: 4294967295
-  m_fontColor: {r: 1, g: 1, b: 1, a: 1}
+    rgba: 4278220287
+  m_fontColor: {r: 1, g: 0.45740873, b: 0, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
   m_fontColorGradient:
@@ -911,8 +911,8 @@ MonoBehaviour:
   burstCount: 12
   scaleRange: {x: 0.4, y: 1.4}
   extraYFloatRange: {x: 0.4, y: 1.2}
-  shapeLifetime: 1.6
-  sortingOrder: 10
+  shapeLifetime: 4
+  sortingOrder: 100
   shapesParent: {fileID: 0}
   ringPoints: 14
   ringRadiusMin: 2.5
@@ -928,6 +928,11 @@ MonoBehaviour:
   raysWidth: 0.25
   sweepRows: 4
   sweepJitter: 0.6
+  viewMargin: 0.25
+  minVisibleScale: 0.35
+  forceSortingLayerName: 
+  forceSortingOrder: 0
+  forceOpaque: 1
 --- !u!4 &520592789
 Transform:
   m_ObjectHideFlags: 0
@@ -1744,10 +1749,10 @@ RectTransform:
   - {fileID: 868131286}
   m_Father: {fileID: 1092667017}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0, y: 0}
-  m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 0, y: 0}
+  m_AnchorMin: {x: 0, y: 1}
+  m_AnchorMax: {x: 0, y: 1}
+  m_AnchoredPosition: {x: 734, y: -381.6247}
+  m_SizeDelta: {x: 785.4995, y: 763.2494}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!1 &719232060
 GameObject:
@@ -2560,8 +2565,8 @@ MonoBehaviour:
   m_fontMaterials: []
   m_fontColor32:
     serializedVersion: 2
-    rgba: 4294967295
-  m_fontColor: {r: 1, g: 1, b: 1, a: 1}
+    rgba: 4278302207
+  m_fontColor: {r: 1, g: 0.7090378, b: 0.0047169924, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
   m_fontColorGradient:
