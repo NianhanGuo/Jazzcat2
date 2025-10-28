@@ -4,7 +4,7 @@ public class NoteSpawner : MonoBehaviour
 {
     [Header("Spawner Settings")]
     public GameObject notePrefab;      // assign your Note prefab here
-    public float spawnInterval = 2f;   // time between spawns
+    public float spawnInterval = 4f;   // time between spawns
     public float xRange = 8f;          // horizontal spread of spawns
 
     float timer;

@@ -488,11 +488,11 @@ MonoBehaviour:
   - {fileID: 11400000, guid: a999f29030f7a4323b8abb871ba397b4, type: 2}
   randomAnyWeights:
   - 4
-  - 3
-  - 3
+  - 4
+  - 4
+  - 4
   - 2
-  - 1
-  - 1
+  - 4
   fadeInTime: 0.6
   fadeOutTime: 0.8
   transposePool: feffffffffffffff000000000100000002000000
@@ -1025,7 +1025,7 @@ BoxCollider2D:
   m_UsedByEffector: 0
   m_CompositeOperation: 0
   m_CompositeOrder: 0
-  m_Offset: {x: -1.228579, y: -0.06991744}
+  m_Offset: {x: -1.228579, y: 0.53910935}
   m_SpriteTilingProperty:
     border: {x: 0, y: 0, z: 0, w: 0}
     pivot: {x: 0.5, y: 0.5}
@@ -1035,7 +1035,7 @@ BoxCollider2D:
     drawMode: 0
     adaptiveTiling: 0
   m_AutoTiling: 0
-  m_Size: {x: 5.914316, y: 7.851897}
+  m_Size: {x: 5.914316, y: 6.6338434}
   m_EdgeRadius: 0
 --- !u!212 &595971786
 SpriteRenderer:
@@ -1193,7 +1193,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   notePrefab: {fileID: 668071173}
-  spawnInterval: 1
+  spawnInterval: 2
   xRange: 8
 --- !u!4 &616274450
 Transform:
@@ -1508,7 +1508,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   platformPrefab: {fileID: 8778807779659395066, guid: 9c2feca293dce400eacbeaf43aca4a7a, type: 3}
-  spawnEverySeconds: {x: 0.5, y: 2.5}
+  spawnEverySeconds: {x: 0.8, y: 2.5}
   widthRange: {x: 2.5, y: 8}
   height: 0.3
   downSpeed: 1.8
@@ -2058,7 +2058,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   clock: {fileID: 504313945}
   visual: {fileID: 519420033}
-  ride: {fileID: 8300000, guid: 332e9e475c1cc43cdbece40726a42bf5, type: 3}
+  ride: {fileID: 8300000, guid: e38672c3a96a646d092b816c0ee1eb4a, type: 3}
   swing: 0.62
   barsAhead: 2
   lookAhead: 0.08
@@ -2463,7 +2463,7 @@ SpriteRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
-  m_Sprite: {fileID: 3665478043169209534, guid: 0979404bb5ab244bebdbc3da90827a6c, type: 3}
+  m_Sprite: {fileID: 2308832397539827165, guid: 696191852dfc64903b458af9a2151c56, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
@@ -2482,13 +2482,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1496624652}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -0.1991, y: 0.4268, z: 0}
-  m_LocalScale: {x: 1.5970511, y: 1.3875128, z: 1}
+  m_LocalRotation: {x: -0.000006223187, y: -0.000006223187, z: 0.70710677, w: 0.70710677}
+  m_LocalPosition: {x: 0.2875, y: -0.303, z: -0}
+  m_LocalScale: {x: 1.4207305, y: 1.2727438, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: -0.001, z: 90}
 --- !u!1 &1691455398 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 2175556680908513917, guid: 84b2e5f998a78442e847cf7a14ffb258, type: 3}
