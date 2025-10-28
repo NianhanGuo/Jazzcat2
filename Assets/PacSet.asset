@@ -18,4 +18,4 @@ MonoBehaviour:
   - {fileID: 8300000, guid: 293b345783372424d9f842d1455ed7f2, type: 3}
   - {fileID: 8300000, guid: dceead03721da4b9b99c32c806568744, type: 3}
   - {fileID: 8300000, guid: 047558792ee2d454790c9f0513f2a223, type: 3}
-  isLeadFlags: 00010100
+  isLeadFlags: 01010100
