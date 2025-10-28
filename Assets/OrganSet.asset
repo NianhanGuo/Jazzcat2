@@ -17,3 +17,4 @@ MonoBehaviour:
   - {fileID: 8300000, guid: f42742485afdf4ae6a8879a14d8fcae5, type: 3}
   - {fileID: 8300000, guid: 38d349bcb347d49d5ac99aadb54b26ad, type: 3}
   - {fileID: 8300000, guid: 03ec4e38fb58641c3a9935c4a709b7e8, type: 3}
+  isLeadFlags: 010101

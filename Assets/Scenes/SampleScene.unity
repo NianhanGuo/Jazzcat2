@@ -597,11 +597,10 @@ MonoBehaviour:
   randomAnyWeights:
   - 4
   - 3
-  - 2
+  - 3
   - 2
   - 1
   - 1
-  leadLibraryIndices: 0200000005000000
   maxLeadLayers: 1
   maxLayers: 8
   fadeInTime: 0.6
@@ -2040,7 +2039,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   clock: {fileID: 504313945}
-  rideClip: {fileID: 8300000, guid: 77d0823cfcc464e25804cafeaed7b36c, type: 3}
+  rideClip: {fileID: 0}
   visual: {fileID: 519420033}
 --- !u!82 &760140371
 AudioSource:
