@@ -202,3 +202,5 @@ MonoBehaviour:
   boostImpulse: 30
   stickyFriction: 20
   playerTag: Player
+  topContactTolerance: 0.02
+  requireDownwardVy: -0.01
