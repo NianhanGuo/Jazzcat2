@@ -1,0 +1,21 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4f18c99fb67634173ad30b5b9e79d714, type: 3}
+  m_Name: DrumSet
+  m_EditorClassIdentifier: 
+  displayName: Instrument
+  variants:
+  - {fileID: 8300000, guid: b8c8ef2df34cb487d93f67bfd464430e, type: 3}
+  - {fileID: 8300000, guid: e38672c3a96a646d092b816c0ee1eb4a, type: 3}
+  - {fileID: 8300000, guid: deec9a78aa3464f0aa1342d61a8f050f, type: 3}
+  - {fileID: 8300000, guid: ebec5d1d1c8eb4b14b9eaa30e7587aa6, type: 3}
+  - {fileID: 8300000, guid: 77d0823cfcc464e25804cafeaed7b36c, type: 3}

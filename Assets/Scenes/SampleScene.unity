@@ -556,6 +556,92 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &392855101
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 392855104}
+  - component: {fileID: 392855103}
+  - component: {fileID: 392855102}
+  m_Layer: 0
+  m_Name: 'MusicSystem '
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &392855102
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 392855101}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c97c090a379844f57b434430b3c6f82d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  outputGroup: {fileID: 0}
+  libraries:
+  - {fileID: 11400000, guid: 7e8b87e9731ba4004bd29a0ad5fabbb5, type: 2}
+  - {fileID: 11400000, guid: dddfb626cdf624a399248558398b5660, type: 2}
+  - {fileID: 11400000, guid: 62c69fdbb8f6f4cd084ea4fb0d1dbe29, type: 2}
+  - {fileID: 11400000, guid: e964d7b37802b4027bf633a363a56199, type: 2}
+  - {fileID: 11400000, guid: 03b6e665ef41742b2983eccc10369ea4, type: 2}
+  - {fileID: 11400000, guid: a999f29030f7a4323b8abb871ba397b4, type: 2}
+  randomAnyWeights:
+  - 4
+  - 3
+  - 2
+  - 2
+  - 1
+  - 1
+  leadLibraryIndices: 0200000005000000
+  maxLeadLayers: 1
+  maxLayers: 8
+  fadeInTime: 0.6
+  fadeOutTime: 0.8
+  transposePool: feffffffffffffff000000000100000002000000
+  nonZeroTransposeProbability: 0.7
+  startPhaseJitter: 0.02
+  baseVolume: 0.7
+  volumeJitter: 0.08
+  conductor: {fileID: 392855103}
+  autoEvolveEveryNBars: 4
+--- !u!114 &392855103
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 392855101}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4a052fc5c636e453cba3cd1ec2e2dbc8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  bpm: 100
+  beatsPerBar: 4
+--- !u!4 &392855104
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 392855101}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 169.86673, y: -27.284973, z: -6.870655}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &393891164
 GameObject:
   m_ObjectHideFlags: 0
@@ -1489,6 +1575,19 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   collectSFX: {fileID: 0}
+--- !u!114 &668071183
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 668071173}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 485cb708b3e2e4121bbafaceb95d91cc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  instrument: -1
 --- !u!1 &673383903
 GameObject:
   m_ObjectHideFlags: 0
@@ -1519,7 +1618,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   platformPrefab: {fileID: 8778807779659395066, guid: 9c2feca293dce400eacbeaf43aca4a7a, type: 3}
-  spawnEverySeconds: {x: 0.7, y: 2.5}
+  spawnEverySeconds: {x: 0.5, y: 2.5}
   widthRange: {x: 2.5, y: 8}
   height: 0.3
   downSpeed: 1.8
@@ -1941,7 +2040,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   clock: {fileID: 504313945}
-  rideClip: {fileID: 8300000, guid: 332e9e475c1cc43cdbece40726a42bf5, type: 3}
+  rideClip: {fileID: 8300000, guid: 77d0823cfcc464e25804cafeaed7b36c, type: 3}
   visual: {fileID: 519420033}
 --- !u!82 &760140371
 AudioSource:
@@ -3288,6 +3387,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 4528921244882949295, guid: e36cad143d7224cdb9970d482e11a375, type: 3}
       insertIndex: -1
       addedObject: {fileID: 668071178}
+    - targetCorrespondingSourceObject: {fileID: 4528921244882949295, guid: e36cad143d7224cdb9970d482e11a375, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 668071183}
   m_SourcePrefab: {fileID: 100100000, guid: e36cad143d7224cdb9970d482e11a375, type: 3}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
@@ -3315,3 +3417,4 @@ SceneRoots:
   - {fileID: 673383905}
   - {fileID: 127659266}
   - {fileID: 1496624654}
+  - {fileID: 392855104}

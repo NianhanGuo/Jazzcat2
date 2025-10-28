@@ -1,0 +1,22 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4f18c99fb67634173ad30b5b9e79d714, type: 3}
+  m_Name: PianoSet
+  m_EditorClassIdentifier: 
+  displayName: Instrument
+  variants:
+  - {fileID: 8300000, guid: 9c4c00fd4c6ca4553acfa70e8810dfbc, type: 3}
+  - {fileID: 8300000, guid: ddc0b1b36fce7435686ecbc6bb4e5490, type: 3}
+  - {fileID: 8300000, guid: 6b2295b0e571f425b95ac63e49af47b2, type: 3}
+  - {fileID: 8300000, guid: ad3550aa13ed347a6a1f4f0f0aef74ac, type: 3}
+  - {fileID: 8300000, guid: ad118a201a5594cdb9509b1caad3e402, type: 3}
+  - {fileID: 8300000, guid: 5711e51d868804bec870e645e0b667dd, type: 3}

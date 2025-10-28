@@ -2,17 +2,15 @@ using UnityEngine;
 
 public class FallingNote : MonoBehaviour
 {
-    public AudioClip collectSFX;   // optional
-    private bool consumed;         // 防止重复触发
+    public AudioClip collectSFX;
+    private bool consumed;
 
     void OnTriggerEnter2D(Collider2D other)
     {
         if (consumed) return;
 
-        // 优先取这个碰撞体所属的 Rigidbody 根对象
         Transform root = other.attachedRigidbody ? other.attachedRigidbody.transform : other.transform;
 
-        
         bool isPlayer =
             (root != null && root.CompareTag("Player")) ||
             (root != null && root.GetComponentInParent<CatController2D>() != null);
@@ -20,18 +18,26 @@ public class FallingNote : MonoBehaviour
         if (!isPlayer) return;
         consumed = true;
 
-        // 1) 计数 +1（保持原功能）
+        // 计数
         if (NoteCounter.Instance != null)
             NoteCounter.Instance.AddOne();
 
-        // 2) 触发背景艺术效果（保持原功能）
+        // 背景艺术效果
         if (BackgroundArtManager.Instance != null)
             BackgroundArtManager.Instance.OnNoteCollected();
 
-        // 3) 可选音效（保持原功能）
+        // —— 这里接入音乐系统（关键）——
+        var tag = GetComponent<NoteSoundTag>();
+        if (MusicLayerManager.Instance != null)
+        {
+            var inst = tag ? tag.instrument : NoteInstrument.RandomAny;
+            MusicLayerManager.Instance.OnNoteCollected(inst);
+        }
+
+        // 可选 SFX
         if (collectSFX) AudioSource.PlayClipAtPoint(collectSFX, transform.position);
 
-        // 4) 销毁音符（保持原功能）
+        // 销毁音符
         Destroy(gameObject);
     }
 }

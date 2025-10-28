@@ -1,0 +1,20 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4f18c99fb67634173ad30b5b9e79d714, type: 3}
+  m_Name: GuitarSet
+  m_EditorClassIdentifier: 
+  displayName: Instrument
+  variants:
+  - {fileID: 8300000, guid: 5de70ab86c72e4a608ac86317663636d, type: 3}
+  - {fileID: 8300000, guid: 2df8cebc108c24beaa5dfe6c84514c50, type: 3}
+  - {fileID: 8300000, guid: c28e1682327e64e1fa8e295d411f7da6, type: 3}
+  - {fileID: 8300000, guid: 952db8de9e8e249698d5f343e16a958e, type: 3}

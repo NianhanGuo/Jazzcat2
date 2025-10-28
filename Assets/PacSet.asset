@@ -1,0 +1,20 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4f18c99fb67634173ad30b5b9e79d714, type: 3}
+  m_Name: PacSet
+  m_EditorClassIdentifier: 
+  displayName: Instrument
+  variants:
+  - {fileID: 8300000, guid: 3d154994ce29d41cb8e5576655e7d587, type: 3}
+  - {fileID: 8300000, guid: 293b345783372424d9f842d1455ed7f2, type: 3}
+  - {fileID: 8300000, guid: dceead03721da4b9b99c32c806568744, type: 3}
+  - {fileID: 8300000, guid: 047558792ee2d454790c9f0513f2a223, type: 3}
