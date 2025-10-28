@@ -1198,7 +1198,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   notePrefab: {fileID: 668071173}
-  spawnInterval: 2
+  spawnInterval: 2.4
   xRange: 8
 --- !u!4 &616274450
 Transform:
@@ -1749,10 +1749,10 @@ RectTransform:
   - {fileID: 868131286}
   m_Father: {fileID: 1092667017}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0, y: 1}
-  m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 734, y: -381.6247}
-  m_SizeDelta: {x: 785.4995, y: 763.2494}
+  m_AnchorMin: {x: 0, y: 0}
+  m_AnchorMax: {x: 1, y: 1}
+  m_AnchoredPosition: {x: 9, y: -35}
+  m_SizeDelta: {x: 408.4995, y: 261.2494}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!1 &719232060
 GameObject:
@@ -2488,8 +2488,8 @@ Transform:
   m_GameObject: {fileID: 1496624652}
   serializedVersion: 2
   m_LocalRotation: {x: -0.000006223187, y: -0.000006223187, z: 0.70710677, w: 0.70710677}
-  m_LocalPosition: {x: 0.2875, y: -0.303, z: -0}
-  m_LocalScale: {x: 1.4207305, y: 1.2727438, z: 1}
+  m_LocalPosition: {x: 0.2875, y: -0.1953, z: -0}
+  m_LocalScale: {x: 1.4499974, y: 1.2727438, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
