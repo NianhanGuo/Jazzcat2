@@ -40,14 +40,16 @@ public class MusicLayerManager : MonoBehaviour
 
     void Awake()
     {
-        if (Instance != null && Instance != this) { Destroy(gameObject); return; }
+        if (Instance != null && Instance != this)
+        {
+            Destroy(gameObject);
+            return;
+        }
         Instance = this;
     }
 
     void Start()
     {
-        if (conductor != null && autoEvolveEveryNBars > 0)
-            StartCoroutine(AutoEvolveLoop());
     }
 
     IEnumerator AutoEvolveLoop()
@@ -70,20 +72,67 @@ public class MusicLayerManager : MonoBehaviour
             ? WeightedPickLibrary(false, false)
             : (int)requested;
 
-        bool isLeadAllowed = CountActiveLeads() < 1;
-        // 改成只允许最多 1 个 non-lead
-        bool isNonLeadAllowed = CountActiveNonLeads() < 1;
+        int leadCount = CountActiveLeads();
+        int nonLeadCount = CountActiveNonLeads();
 
-        if (isLeadAllowed)
+        if (leadCount == 0 && nonLeadCount == 0)
         {
-            TryCreateNewLayer(libIndex, false, requireLead: true);
-        }
-        else if (isNonLeadAllowed)
-        {
-            TryCreateNewLayer(libIndex, true, requireLead: false);
+            bool ok = TryCreateNewLayer(libIndex, false, true);
+            if (!ok)
+            {
+                int alt = WeightedPickLibrary(false, false);
+                TryCreateNewLayer(alt, false, true);
+            }
+            return;
         }
 
-        EnforceLayerLimits();
+        if (leadCount == 1 && nonLeadCount == 0)
+        {
+            bool ok = TryCreateNewLayer(libIndex, true, false);
+            if (!ok)
+            {
+                int alt = WeightedPickLibrary(true, true);
+                TryCreateNewLayer(alt, true, false);
+            }
+            return;
+        }
+
+        if (leadCount == 0 && nonLeadCount >= 1)
+        {
+            bool ok = TryCreateNewLayer(libIndex, false, true);
+            if (!ok)
+            {
+                int alt = WeightedPickLibrary(false, false);
+                TryCreateNewLayer(alt, false, true);
+            }
+            return;
+        }
+
+        if (layers.Count == 0)
+            return;
+
+        ActiveLayer kicked = layers[rng.Next(0, layers.Count)];
+        bool kickedIsLead = kicked.isLead;
+        StartCoroutine(FadeOutAndRemove(kicked));
+
+        if (kickedIsLead)
+        {
+            bool ok = TryCreateNewLayer(libIndex, false, true);
+            if (!ok)
+            {
+                int alt = WeightedPickLibrary(false, false);
+                TryCreateNewLayer(alt, false, true);
+            }
+        }
+        else
+        {
+            bool ok = TryCreateNewLayer(libIndex, true, false);
+            if (!ok)
+            {
+                int alt = WeightedPickLibrary(true, true);
+                TryCreateNewLayer(alt, true, false);
+            }
+        }
     }
 
     void EnforceLayerLimits()
@@ -96,7 +145,6 @@ public class MusicLayerManager : MonoBehaviour
             else nonLeads.Add(l);
         }
 
-        // 仍然只保留 1 个 lead（如果以后你想改，也可以在这里改）
         if (leadCount > 1)
         {
             for (int i = leadCount - 1; i >= 1; i--)
@@ -106,7 +154,6 @@ public class MusicLayerManager : MonoBehaviour
             }
         }
 
-        // 改成只保留 1 个 non-lead
         if (nonLeads.Count > 1)
         {
             int removeCount = nonLeads.Count - 1;
@@ -140,6 +187,7 @@ public class MusicLayerManager : MonoBehaviour
 
         int varIndex = candidates[rng.Next(0, candidates.Count)];
         var clip = set.variants[varIndex];
+
         var go = new GameObject($"Layer_{libIndex}_{varIndex}");
         go.transform.SetParent(transform, false);
 

@@ -21,4 +21,4 @@ MonoBehaviour:
   - {fileID: 8300000, guid: ad118a201a5594cdb9509b1caad3e402, type: 3}
   - {fileID: 8300000, guid: 5711e51d868804bec870e645e0b667dd, type: 3}
   - {fileID: 8300000, guid: a87b732b07b704fdf85f6b8bc6b60a7b, type: 3}
-  isLeadFlags: 01010101010100
+  isLeadFlags: 01010101010101
