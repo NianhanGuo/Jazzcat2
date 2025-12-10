@@ -71,7 +71,8 @@ public class MusicLayerManager : MonoBehaviour
             : (int)requested;
 
         bool isLeadAllowed = CountActiveLeads() < 1;
-        bool isNonLeadAllowed = CountActiveNonLeads() < 2;
+        // 改成只允许最多 1 个 non-lead
+        bool isNonLeadAllowed = CountActiveNonLeads() < 1;
 
         if (isLeadAllowed)
         {
@@ -95,6 +96,7 @@ public class MusicLayerManager : MonoBehaviour
             else nonLeads.Add(l);
         }
 
+        // 仍然只保留 1 个 lead（如果以后你想改，也可以在这里改）
         if (leadCount > 1)
         {
             for (int i = leadCount - 1; i >= 1; i--)
@@ -104,9 +106,10 @@ public class MusicLayerManager : MonoBehaviour
             }
         }
 
-        if (nonLeads.Count > 2)
+        // 改成只保留 1 个 non-lead
+        if (nonLeads.Count > 1)
         {
-            int removeCount = nonLeads.Count - 2;
+            int removeCount = nonLeads.Count - 1;
             for (int i = 0; i < removeCount; i++)
             {
                 var layer = nonLeads[rng.Next(0, nonLeads.Count)];

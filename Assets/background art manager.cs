@@ -72,18 +72,116 @@ public class BackgroundArtManager : MonoBehaviour
     [Tooltip("If true, ensure final alpha = 1 for spawned SpriteRenderers.")]
     public bool forceOpaque = true;
 
+    [Header("Ambient Settings")]
+    [Tooltip("If true, the background will gently spawn shapes over time even when no notes are collected.")]
+    public bool enableAmbient = true;
+    [Tooltip("Random delay range between ambient spawns (seconds).")]
+    public float ambientMinDelay = 0.25f;
+    public float ambientMaxDelay = 0.7f;
+    [Tooltip("Random range of how many shapes to spawn for each ambient tick.")]
+    public int ambientMinBurst = 1;
+    public int ambientMaxBurst = 3;
+    [Tooltip("Ambient shapes are usually smaller than on-hit ones.")]
+    public float ambientScaleMultiplier = 0.6f;
+    [Tooltip("Ambient float-up distance is scaled down by this factor.")]
+    public float ambientFloatMultiplier = 0.5f;
+
+    // =========================================================
+    // NEW: Large abstract background elements + themes
+    // =========================================================
+
+    [System.Serializable]
+    public class BackgroundElement
+    {
+        [Tooltip("A big abstract sprite in the background (child with SpriteRenderer).")]
+        public Transform target;
+
+        [Header("Idle Motion")]
+        public float moveAmplitude = 0.5f;
+        public float moveSpeed = 0.4f;
+        public float rotationAmplitude = 6f;
+        public float rotationSpeed = 0.5f;
+        public float scaleAmplitude = 0.12f;
+        public float scaleSpeed = 0.6f;
+
+        [HideInInspector] public Vector3 basePosition;
+        [HideInInspector] public Vector3 baseScale;
+        [HideInInspector] public float baseRotation;
+        [HideInInspector] public float movePhase;
+        [HideInInspector] public float rotPhase;
+        [HideInInspector] public float scalePhase;
+        [HideInInspector] public SpriteRenderer spriteRenderer;
+    }
+
+    [System.Serializable]
+    public class BackgroundTheme
+    {
+        public string name;
+
+        [Header("Sprites for large elements")]
+        [Tooltip("Sprites for each BackgroundElement (index对齐). 留空则保持原图。")]
+        public Sprite[] elementSprites;
+
+        [Header("Camera & Colors")]
+        [Tooltip("Base camera background color for this theme.")]
+        public Color cameraColor = Color.black;
+        [Tooltip("Palette used for spawned small shapes when this theme is active.")]
+        public Color[] themePalette;
+    }
+
+    [Header("Large Abstract Elements (always moving)")]
+    [Tooltip("These are your big abstract pieces (mountains, line jungles, etc.) that constantly move.")]
+    public BackgroundElement[] backgroundElements;
+
+    [Header("Hat Themes (triggered when cat changes hat)")]
+    public BackgroundTheme[] themes;
+    public int startingThemeIndex = 0;
+    public float themeTransitionDuration = 1.5f;
+    public AnimationCurve themeTransitionCurve = AnimationCurve.EaseInOut(0, 0, 1, 1);
+
+    int _currentThemeIndex = -1;
+    bool _themeTransitionRunning;
+
+    // =========================================================
+
     // internal
     Color _bgLerpFrom, _bgLerpTo;
     float _bgLerpT;
     int _spawnedThisCall;
 
+    float _nextAmbientTime;
+
     void Awake()
     {
-        if (Instance != null && Instance != this) { Destroy(gameObject); return; }
+        if (Instance != null && Instance != this)
+        {
+            Destroy(gameObject);
+            return;
+        }
         Instance = this;
 
         if (targetCamera == null) targetCamera = Camera.main;
     }
+
+    void Start()
+    {
+        ScheduleNextAmbient();
+        SetupBackgroundElements();
+
+        if (themes != null && themes.Length > 0)
+        {
+            int idx = Mathf.Clamp(startingThemeIndex, 0, themes.Length - 1);
+            InstantApplyTheme(idx);
+        }
+    }
+
+    void Update()
+    {
+        HandleAmbient();
+        UpdateBackgroundElementsMotion();
+    }
+
+    // -------------------- PUBLIC API --------------------
 
     public void OnNoteCollected()
     {
@@ -98,6 +196,114 @@ public class BackgroundArtManager : MonoBehaviour
             Pattern_FallbackBurst();
         }
     }
+
+    /// <summary>
+    /// 猫换帽子的时候，从外部脚本调用：
+    /// BackgroundArtManager.Instance.ApplyTheme(themeIndex, 1.5f);
+    /// </summary>
+    public void ApplyTheme(int themeIndex, float lerpTime)
+    {
+        if (themes == null || themes.Length == 0) return;
+        themeIndex = Mathf.Clamp(themeIndex, 0, themes.Length - 1);
+        if (themeIndex == _currentThemeIndex && _currentThemeIndex >= 0) return;
+
+        StopCoroutine(nameof(ThemeTransitionRoutine));
+        StartCoroutine(ThemeTransitionRoutine(themeIndex, lerpTime));
+    }
+
+    /// <summary>
+    /// 游戏一开始用的瞬间设置，不做过渡。
+    /// </summary>
+    public void InstantApplyTheme(int themeIndex)
+    {
+        if (themes == null || themes.Length == 0) return;
+        themeIndex = Mathf.Clamp(themeIndex, 0, themes.Length - 1);
+
+        BackgroundTheme t = themes[themeIndex];
+        _currentThemeIndex = themeIndex;
+
+        // 1. 替换大元素的 sprite
+        if (backgroundElements != null && t.elementSprites != null)
+        {
+            int len = Mathf.Min(backgroundElements.Length, t.elementSprites.Length);
+            for (int i = 0; i < len; i++)
+            {
+                if (backgroundElements[i] != null &&
+                    backgroundElements[i].spriteRenderer != null &&
+                    t.elementSprites[i] != null)
+                {
+                    backgroundElements[i].spriteRenderer.sprite = t.elementSprites[i];
+                }
+            }
+        }
+
+        // 2. 设置 camera 颜色
+        if (targetCamera != null)
+        {
+            targetCamera.backgroundColor = t.cameraColor;
+        }
+
+        // 3. 替换 palette（小 shapes 用）
+        if (t.themePalette != null && t.themePalette.Length > 0)
+        {
+            palette = (Color[])t.themePalette.Clone();
+        }
+    }
+
+    // -------------------- Ambient Logic --------------------
+
+    void HandleAmbient()
+    {
+        if (!enableAmbient) return;
+        if (targetCamera == null) return;
+        if (shapePrefabs == null || shapePrefabs.Length == 0) return;
+
+        if (Time.time >= _nextAmbientTime)
+        {
+            PlayAmbientTick();
+            ScheduleNextAmbient();
+        }
+    }
+
+    void ScheduleNextAmbient()
+    {
+        float min = Mathf.Max(0.01f, ambientMinDelay);
+        float max = Mathf.Max(min, ambientMaxDelay);
+        _nextAmbientTime = Time.time + Random.Range(min, max);
+    }
+
+    void PlayAmbientTick()
+    {
+        Bounds b = ViewBoundsInset();
+        int count = Mathf.Clamp(
+            Random.Range(ambientMinBurst, ambientMaxBurst + 1),
+            1,
+            Mathf.Max(1, burstCount)
+        );
+
+        for (int i = 0; i < count; i++)
+        {
+            float x = Random.Range(b.min.x, b.max.x);
+            float y = Random.Range(b.min.y, b.max.y);
+            Vector3 pos = new Vector3(x, y, 0f);
+
+            float baseScale = Random.Range(scaleRange.x, scaleRange.y);
+            float s = Mathf.Max(
+                minVisibleScale,
+                baseScale * Mathf.Clamp01(ambientScaleMultiplier)
+            );
+
+            float baseFloat = Random.Range(extraYFloatRange.x, extraYFloatRange.y);
+            float floatUp = baseFloat * Mathf.Clamp01(ambientFloatMultiplier);
+
+            float rot = Random.Range(0f, 360f);
+            float spin = Random.Range(-20f, 20f);
+
+            SpawnShape(pos, rot, new Vector2(s, s), floatUp, spin);
+        }
+    }
+
+    // -------------------- Background Color --------------------
 
     void LerpBackgroundColor()
     {
@@ -122,6 +328,8 @@ public class BackgroundArtManager : MonoBehaviour
         }
     }
 
+    // -------------------- Main Patterns (on note hit) --------------------
+
     enum Pattern { Burst, Ring, Spiral, Rays, Sweep, Grid }
 
     void PlayRandomPattern()
@@ -140,8 +348,6 @@ public class BackgroundArtManager : MonoBehaviour
             case Pattern.Grid:   Pattern_Grid();   break;
         }
     }
-
-    // --- Patterns ---
 
     void Pattern_Burst()
     {
@@ -164,7 +370,11 @@ public class BackgroundArtManager : MonoBehaviour
     {
         Bounds b = ViewBoundsInset();
         Vector3 c = b.center;
-        float r = Mathf.Clamp(Random.Range(ringRadiusMin, ringRadiusMax), 0.5f, Mathf.Min(b.extents.x, b.extents.y) - viewMargin);
+        float r = Mathf.Clamp(
+            Random.Range(ringRadiusMin, ringRadiusMax),
+            0.5f,
+            Mathf.Min(b.extents.x, b.extents.y) - viewMargin
+        );
         int n = Mathf.Max(3, ringPoints);
 
         for (int i = 0; i < n; i++)
@@ -188,7 +398,10 @@ public class BackgroundArtManager : MonoBehaviour
         {
             float t = i / (float)(n - 1);
             float ang = t * turns * Mathf.PI * 2f;
-            float r = t * Mathf.Min(spiralRadius, Mathf.Min(b.extents.x, b.extents.y) - viewMargin);
+            float r = t * Mathf.Min(
+                spiralRadius,
+                Mathf.Min(b.extents.x, b.extents.y) - viewMargin
+            );
             Vector3 pos = c + new Vector3(Mathf.Cos(ang) * r, Mathf.Sin(ang) * r, 0f);
 
             float s = Mathf.Lerp(scaleRange.x, scaleRange.y, t);
@@ -258,7 +471,10 @@ public class BackgroundArtManager : MonoBehaviour
                 float jitterX = (Random.value - 0.5f) * gridPadding;
                 float jitterY = (Random.value - 0.5f) * gridPadding;
 
-                Vector3 pos = ClampToBounds(new Vector3(x + jitterX, y + jitterY, 0f), b);
+                Vector3 pos = ClampToBounds(
+                    new Vector3(x + jitterX, y + jitterY, 0f),
+                    b
+                );
                 float s = Random.Range(scaleRange.x * 0.9f, scaleRange.y);
                 float spin = Random.Range(-45f, 45f);
                 SpawnShape(pos, 0f, new Vector2(s, s), 0.5f, spin);
@@ -274,11 +490,17 @@ public class BackgroundArtManager : MonoBehaviour
         {
             float ang = Random.Range(0f, 360f);
             float s = Mathf.Max(minVisibleScale, Random.Range(scaleRange.x, scaleRange.y));
-            SpawnShape(c, ang, new Vector2(s, s), Random.Range(0.3f, 0.8f), Random.Range(-50f, 50f));
+            SpawnShape(
+                c,
+                ang,
+                new Vector2(s, s),
+                Random.Range(0.3f, 0.8f),
+                Random.Range(-50f, 50f)
+            );
         }
     }
 
-    // --- Helpers ---
+    // -------------------- Helpers --------------------
 
     Bounds ViewBounds()
     {
@@ -313,7 +535,12 @@ public class BackgroundArtManager : MonoBehaviour
         // clamp to visible area
         position = ClampToBounds(position, ViewBoundsInset());
 
-        GameObject go = Instantiate(prefab, position, Quaternion.Euler(0, 0, zRotationDeg), shapesParent);
+        GameObject go = Instantiate(
+            prefab,
+            position,
+            Quaternion.Euler(0, 0, zRotationDeg),
+            shapesParent
+        );
 
         // guarantee minimal visible scale
         float sx = Mathf.Max(minVisibleScale, scaleXY.x);
@@ -326,7 +553,12 @@ public class BackgroundArtManager : MonoBehaviour
         {
             Color baseCol = palette[Random.Range(0, palette.Length)];
             float v = Random.Range(0.8f, 1.25f);
-            Color c = new Color(baseCol.r * v, baseCol.g * v, baseCol.b * v, forceOpaque ? 1f : sr.color.a);
+            Color c = new Color(
+                baseCol.r * v,
+                baseCol.g * v,
+                baseCol.b * v,
+                forceOpaque ? 1f : sr.color.a
+            );
             sr.color = c;
 
             if (!string.IsNullOrEmpty(forceSortingLayerName))
@@ -351,5 +583,142 @@ public class BackgroundArtManager : MonoBehaviour
         fx.spin    = spin;
 
         _spawnedThisCall++;
+    }
+
+    // =========================================================
+    // NEW: big elements setup + motion + theme transition
+    // =========================================================
+
+    void SetupBackgroundElements()
+    {
+        if (backgroundElements == null) return;
+
+        foreach (var e in backgroundElements)
+        {
+            if (e == null || e.target == null) continue;
+
+            e.basePosition = e.target.position;
+            e.baseScale    = e.target.localScale;
+            e.baseRotation = e.target.rotation.eulerAngles.z;
+
+            e.movePhase  = Random.Range(0f, Mathf.PI * 2f);
+            e.rotPhase   = Random.Range(0f, Mathf.PI * 2f);
+            e.scalePhase = Random.Range(0f, Mathf.PI * 2f);
+
+            e.spriteRenderer = e.target.GetComponent<SpriteRenderer>();
+        }
+    }
+
+    void UpdateBackgroundElementsMotion()
+    {
+        if (backgroundElements == null) return;
+
+        float t = Time.time;
+
+        foreach (var e in backgroundElements)
+        {
+            if (e == null || e.target == null) continue;
+
+            // 1. position small drift
+            Vector2 dir = new Vector2(
+                Mathf.Sin(t * e.moveSpeed + e.movePhase),
+                Mathf.Cos(t * e.moveSpeed * 0.7f + e.movePhase * 1.3f)
+            );
+            Vector3 offset = new Vector3(dir.x, dir.y, 0f) * e.moveAmplitude;
+
+            // 2. rotation wobble
+            float rotNoise = Mathf.Sin(t * e.rotationSpeed + e.rotPhase);
+            float zRot = e.baseRotation + rotNoise * e.rotationAmplitude;
+
+            // 3. scale breathing
+            float scaleNoise = Mathf.Sin(t * e.scaleSpeed + e.scalePhase);
+            float scaleMul = 1f + scaleNoise * e.scaleAmplitude;
+            if (scaleMul < 0.1f) scaleMul = 0.1f;
+
+            e.target.position = e.basePosition + offset;
+            e.target.rotation = Quaternion.Euler(0f, 0f, zRot);
+            e.target.localScale = e.baseScale * scaleMul;
+        }
+    }
+
+    IEnumerator ThemeTransitionRoutine(int newIndex, float lerpTime)
+    {
+        if (themes == null || themes.Length == 0) yield break;
+
+        lerpTime = Mathf.Max(0.0001f, lerpTime);
+        _themeTransitionRunning = true;
+
+        BackgroundTheme from = (_currentThemeIndex >= 0 && _currentThemeIndex < themes.Length)
+            ? themes[_currentThemeIndex]
+            : null;
+        BackgroundTheme to = themes[newIndex];
+
+        // 1. 替换大元素 sprite（因为它们一直在动，形状跳变会被运动+颜色渐变软化）
+        if (backgroundElements != null && to.elementSprites != null)
+        {
+            int len = Mathf.Min(backgroundElements.Length, to.elementSprites.Length);
+            for (int i = 0; i < len; i++)
+            {
+                if (backgroundElements[i] != null &&
+                    backgroundElements[i].spriteRenderer != null &&
+                    to.elementSprites[i] != null)
+                {
+                    backgroundElements[i].spriteRenderer.sprite = to.elementSprites[i];
+                }
+            }
+        }
+
+        _currentThemeIndex = newIndex;
+
+        // 2. 准备 camera 颜色插值
+        Color camFrom = targetCamera != null ? targetCamera.backgroundColor : Color.black;
+        Color camTo   = to.cameraColor;
+
+        // 3. palette 插值（小 shapes 用）
+        Color[] paletteFrom = palette != null ? (Color[])palette.Clone() : null;
+        Color[] paletteTo   = to.themePalette != null && to.themePalette.Length > 0
+            ? to.themePalette
+            : paletteFrom;
+
+        float time = 0f;
+        while (time < lerpTime)
+        {
+            time += Time.deltaTime;
+            float t = Mathf.Clamp01(time / lerpTime);
+            float k = themeTransitionCurve != null ? themeTransitionCurve.Evaluate(t) : t;
+
+            // camera color
+            if (targetCamera != null)
+            {
+                targetCamera.backgroundColor = Color.Lerp(camFrom, camTo, k);
+            }
+
+            // palette
+            if (paletteFrom != null && paletteTo != null &&
+                paletteFrom.Length > 0 && paletteTo.Length > 0)
+            {
+                int len = Mathf.Min(paletteFrom.Length, paletteTo.Length);
+                Color[] mixed = new Color[len];
+                for (int i = 0; i < len; i++)
+                {
+                    mixed[i] = Color.Lerp(paletteFrom[i], paletteTo[i], k);
+                }
+                palette = mixed;
+            }
+
+            yield return null;
+        }
+
+        // 最终确保 camera 和 palette 是目标值
+        if (targetCamera != null)
+        {
+            targetCamera.backgroundColor = camTo;
+        }
+        if (paletteTo != null && paletteTo.Length > 0)
+        {
+            palette = (Color[])paletteTo.Clone();
+        }
+
+        _themeTransitionRunning = false;
     }
 }
