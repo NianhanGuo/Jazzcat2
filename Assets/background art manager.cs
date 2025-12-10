@@ -10,31 +10,20 @@ public class BackgroundArtManager : MonoBehaviour
     public Camera targetCamera;
     public Color[] palette =
     {
-        new Color(0.10f,0.10f,0.14f),
-        new Color(0.27f,0.12f,0.38f),
-        new Color(0.05f,0.25f,0.25f),
-        new Color(0.30f,0.10f,0.10f),
-        new Color(0.20f,0.25f,0.05f),
-        new Color(0.06f,0.06f,0.06f)
+        new Color(0.93f,0.88f,0.82f),
+        new Color(0.86f,0.70f,0.76f),
+        new Color(0.55f,0.53f,0.75f),
+        new Color(0.92f,0.80f,0.74f),
+        new Color(0.75f,0.64f,0.86f)
     };
     public float bgLerpDuration = 0.6f;
 
     [Header("Shapes")]
-    [Tooltip("Provide 1+ simple SpriteRenderer-based prefabs (circle, square, triangle).")]
     public GameObject[] shapePrefabs;
-    [Tooltip("Used by several effects as the baseline spawn amount.")]
     public int burstCount = 8;
-
-    [Tooltip("Uniform scale range used by some effects.")]
     public Vector2 scaleRange = new Vector2(0.4f, 1.4f);
-
-    [Tooltip("Extra upward drift distance used by ShapeBurst.")]
     public Vector2 extraYFloatRange = new Vector2(0.4f, 1.2f);
-
-    [Tooltip("Lifetime (seconds) until a spawned piece fades out and self-destroys.")]
     public float shapeLifetime = 1.6f;
-
-    [Tooltip("SpriteRenderer.sortingOrder applied to spawned shapes.")]
     public int sortingOrder = 1;
 
     [Header("Parent (optional)")]
@@ -61,42 +50,25 @@ public class BackgroundArtManager : MonoBehaviour
     public float sweepJitter = 0.6f;
 
     [Header("Always-Visible Safeguards")]
-    [Tooltip("Clamp all spawn positions inside camera view with this margin (world units).")]
     public float viewMargin = 0.25f;
-    [Tooltip("Guarantee at least this scale on X/Y so shapes are not microscopic.")]
     public float minVisibleScale = 0.35f;
-    [Tooltip("Force spawned shapes to this sorting layer (leave empty to keep prefab's layer).")]
     public string forceSortingLayerName = "";
-    [Tooltip("If true, override sortingOrder to 'sortingOrder' value below for all spawned shapes.")]
     public bool forceSortingOrder = false;
-    [Tooltip("If true, ensure final alpha = 1 for spawned SpriteRenderers.")]
     public bool forceOpaque = true;
 
     [Header("Ambient Settings")]
-    [Tooltip("If true, the background will gently spawn shapes over time even when no notes are collected.")]
     public bool enableAmbient = true;
-    [Tooltip("Random delay range between ambient spawns (seconds).")]
     public float ambientMinDelay = 0.25f;
     public float ambientMaxDelay = 0.7f;
-    [Tooltip("Random range of how many shapes to spawn for each ambient tick.")]
     public int ambientMinBurst = 1;
     public int ambientMaxBurst = 3;
-    [Tooltip("Ambient shapes are usually smaller than on-hit ones.")]
     public float ambientScaleMultiplier = 0.6f;
-    [Tooltip("Ambient float-up distance is scaled down by this factor.")]
     public float ambientFloatMultiplier = 0.5f;
-
-    // =========================================================
-    // NEW: Large abstract background elements + themes
-    // =========================================================
 
     [System.Serializable]
     public class BackgroundElement
     {
-        [Tooltip("A big abstract sprite in the background (child with SpriteRenderer).")]
         public Transform target;
-
-        [Header("Idle Motion")]
         public float moveAmplitude = 0.5f;
         public float moveSpeed = 0.4f;
         public float rotationAmplitude = 6f;
@@ -117,39 +89,58 @@ public class BackgroundArtManager : MonoBehaviour
     public class BackgroundTheme
     {
         public string name;
-
-        [Header("Sprites for large elements")]
-        [Tooltip("Sprites for each BackgroundElement (index对齐). 留空则保持原图。")]
         public Sprite[] elementSprites;
-
-        [Header("Camera & Colors")]
-        [Tooltip("Base camera background color for this theme.")]
-        public Color cameraColor = Color.black;
-        [Tooltip("Palette used for spawned small shapes when this theme is active.")]
+        public Color cameraColor = new Color(0.96f,0.92f,0.88f);
         public Color[] themePalette;
     }
 
     [Header("Large Abstract Elements (always moving)")]
-    [Tooltip("These are your big abstract pieces (mountains, line jungles, etc.) that constantly move.")]
     public BackgroundElement[] backgroundElements;
 
     [Header("Hat Themes (triggered when cat changes hat)")]
     public BackgroundTheme[] themes;
     public int startingThemeIndex = 0;
-    public float themeTransitionDuration = 1.5f;
+    public float themeTransitionDuration = 3f;
     public AnimationCurve themeTransitionCurve = AnimationCurve.EaseInOut(0, 0, 1, 1);
+
+    [Header("Procedural Line Background")]
+    public Transform lineParent;
+    public int lineLayerCount = 2;
+    public int linesPerLayer = 32;
+    public float lineLengthMin = 6f;
+    public float lineLengthMax = 22f;
+    public float lineWidthMin = 0.03f;
+    public float lineWidthMax = 0.18f;
+    public float lineMoveAmplitude = 1.8f;
+    public float lineMoveSpeedMin = 0.12f;
+    public float lineMoveSpeedMax = 0.38f;
+    public float lineAlphaMin = 0.25f;
+    public float lineAlphaMax = 0.9f;
 
     int _currentThemeIndex = -1;
     bool _themeTransitionRunning;
 
-    // =========================================================
-
-    // internal
     Color _bgLerpFrom, _bgLerpTo;
     float _bgLerpT;
     int _spawnedThisCall;
-
     float _nextAmbientTime;
+
+    class ProceduralLine
+    {
+        public Vector3 center;
+        public Vector2 dir;
+        public float length;
+        public float width;
+        public float moveAmplitude;
+        public float moveSpeed;
+        public float phase;
+        public int paletteIndex;
+        public float alpha;
+        public LineRenderer lr;
+    }
+
+    static Material _lineMaterial;
+    List<ProceduralLine> _proceduralLines = new List<ProceduralLine>();
 
     void Awake()
     {
@@ -173,47 +164,39 @@ public class BackgroundArtManager : MonoBehaviour
             int idx = Mathf.Clamp(startingThemeIndex, 0, themes.Length - 1);
             InstantApplyTheme(idx);
         }
+
+        CreateProceduralLines();
     }
 
     void Update()
     {
         HandleAmbient();
         UpdateBackgroundElementsMotion();
+        UpdateProceduralLines();
     }
-
-    // -------------------- PUBLIC API --------------------
 
     public void OnNoteCollected()
     {
         LerpBackgroundColor();
-
         _spawnedThisCall = 0;
         PlayRandomPattern();
-
-        // Fallback: if nothing spawned (should be rare), do a tiny burst at center
         if (_spawnedThisCall == 0)
         {
             Pattern_FallbackBurst();
         }
     }
 
-    /// <summary>
-    /// 猫换帽子的时候，从外部脚本调用：
-    /// BackgroundArtManager.Instance.ApplyTheme(themeIndex, 1.5f);
-    /// </summary>
     public void ApplyTheme(int themeIndex, float lerpTime)
     {
         if (themes == null || themes.Length == 0) return;
         themeIndex = Mathf.Clamp(themeIndex, 0, themes.Length - 1);
         if (themeIndex == _currentThemeIndex && _currentThemeIndex >= 0) return;
 
+        float duration = themeTransitionDuration > 0f ? themeTransitionDuration : lerpTime;
         StopCoroutine(nameof(ThemeTransitionRoutine));
-        StartCoroutine(ThemeTransitionRoutine(themeIndex, lerpTime));
+        StartCoroutine(ThemeTransitionRoutine(themeIndex, duration));
     }
 
-    /// <summary>
-    /// 游戏一开始用的瞬间设置，不做过渡。
-    /// </summary>
     public void InstantApplyTheme(int themeIndex)
     {
         if (themes == null || themes.Length == 0) return;
@@ -222,7 +205,6 @@ public class BackgroundArtManager : MonoBehaviour
         BackgroundTheme t = themes[themeIndex];
         _currentThemeIndex = themeIndex;
 
-        // 1. 替换大元素的 sprite
         if (backgroundElements != null && t.elementSprites != null)
         {
             int len = Mathf.Min(backgroundElements.Length, t.elementSprites.Length);
@@ -237,20 +219,18 @@ public class BackgroundArtManager : MonoBehaviour
             }
         }
 
-        // 2. 设置 camera 颜色
         if (targetCamera != null)
         {
             targetCamera.backgroundColor = t.cameraColor;
         }
 
-        // 3. 替换 palette（小 shapes 用）
         if (t.themePalette != null && t.themePalette.Length > 0)
         {
             palette = (Color[])t.themePalette.Clone();
         }
-    }
 
-    // -------------------- Ambient Logic --------------------
+        UpdateProceduralLinesColors();
+    }
 
     void HandleAmbient()
     {
@@ -303,15 +283,13 @@ public class BackgroundArtManager : MonoBehaviour
         }
     }
 
-    // -------------------- Background Color --------------------
-
     void LerpBackgroundColor()
     {
         if (targetCamera == null || palette == null || palette.Length == 0) return;
 
         _bgLerpFrom = targetCamera.backgroundColor;
-        _bgLerpTo   = palette[Random.Range(0, palette.Length)];
-        _bgLerpT    = 0f;
+        _bgLerpTo = palette[Random.Range(0, palette.Length)];
+        _bgLerpT = 0f;
         StopCoroutine(nameof(BgLerpRoutine));
         StartCoroutine(nameof(BgLerpRoutine));
     }
@@ -327,8 +305,6 @@ public class BackgroundArtManager : MonoBehaviour
             yield return null;
         }
     }
-
-    // -------------------- Main Patterns (on note hit) --------------------
 
     enum Pattern { Burst, Ring, Spiral, Rays, Sweep, Grid }
 
@@ -500,8 +476,6 @@ public class BackgroundArtManager : MonoBehaviour
         }
     }
 
-    // -------------------- Helpers --------------------
-
     Bounds ViewBounds()
     {
         float ortho = targetCamera.orthographicSize;
@@ -532,7 +506,6 @@ public class BackgroundArtManager : MonoBehaviour
         GameObject prefab = shapePrefabs[Random.Range(0, shapePrefabs.Length)];
         if (prefab == null) return;
 
-        // clamp to visible area
         position = ClampToBounds(position, ViewBoundsInset());
 
         GameObject go = Instantiate(
@@ -542,12 +515,10 @@ public class BackgroundArtManager : MonoBehaviour
             shapesParent
         );
 
-        // guarantee minimal visible scale
         float sx = Mathf.Max(minVisibleScale, scaleXY.x);
         float sy = Mathf.Max(minVisibleScale, scaleXY.y);
         go.transform.localScale = new Vector3(sx, sy, 1f);
 
-        // color & sorting
         var sr = go.GetComponent<SpriteRenderer>();
         if (sr != null)
         {
@@ -575,19 +546,14 @@ public class BackgroundArtManager : MonoBehaviour
             }
         }
 
-        // motion/fade
         var fx = go.GetComponent<ShapeBurst>();
         if (fx == null) fx = go.AddComponent<ShapeBurst>();
-        fx.life    = shapeLifetime;
+        fx.life = shapeLifetime;
         fx.floatUp = floatUp;
-        fx.spin    = spin;
+        fx.spin = spin;
 
         _spawnedThisCall++;
     }
-
-    // =========================================================
-    // NEW: big elements setup + motion + theme transition
-    // =========================================================
 
     void SetupBackgroundElements()
     {
@@ -598,11 +564,11 @@ public class BackgroundArtManager : MonoBehaviour
             if (e == null || e.target == null) continue;
 
             e.basePosition = e.target.position;
-            e.baseScale    = e.target.localScale;
+            e.baseScale = e.target.localScale;
             e.baseRotation = e.target.rotation.eulerAngles.z;
 
-            e.movePhase  = Random.Range(0f, Mathf.PI * 2f);
-            e.rotPhase   = Random.Range(0f, Mathf.PI * 2f);
+            e.movePhase = Random.Range(0f, Mathf.PI * 2f);
+            e.rotPhase = Random.Range(0f, Mathf.PI * 2f);
             e.scalePhase = Random.Range(0f, Mathf.PI * 2f);
 
             e.spriteRenderer = e.target.GetComponent<SpriteRenderer>();
@@ -614,23 +580,24 @@ public class BackgroundArtManager : MonoBehaviour
         if (backgroundElements == null) return;
 
         float t = Time.time;
+        float globalFlowX = Mathf.Sin(t * 0.05f) * 0.3f;
+        float globalFlowY = Mathf.Cos(t * 0.03f) * 0.3f;
 
         foreach (var e in backgroundElements)
         {
             if (e == null || e.target == null) continue;
 
-            // 1. position small drift
             Vector2 dir = new Vector2(
                 Mathf.Sin(t * e.moveSpeed + e.movePhase),
                 Mathf.Cos(t * e.moveSpeed * 0.7f + e.movePhase * 1.3f)
             );
             Vector3 offset = new Vector3(dir.x, dir.y, 0f) * e.moveAmplitude;
+            offset.x += globalFlowX;
+            offset.y += globalFlowY;
 
-            // 2. rotation wobble
             float rotNoise = Mathf.Sin(t * e.rotationSpeed + e.rotPhase);
             float zRot = e.baseRotation + rotNoise * e.rotationAmplitude;
 
-            // 3. scale breathing
             float scaleNoise = Mathf.Sin(t * e.scaleSpeed + e.scalePhase);
             float scaleMul = 1f + scaleNoise * e.scaleAmplitude;
             if (scaleMul < 0.1f) scaleMul = 0.1f;
@@ -638,6 +605,146 @@ public class BackgroundArtManager : MonoBehaviour
             e.target.position = e.basePosition + offset;
             e.target.rotation = Quaternion.Euler(0f, 0f, zRot);
             e.target.localScale = e.baseScale * scaleMul;
+        }
+    }
+
+    void CreateProceduralLines()
+    {
+        _proceduralLines.Clear();
+        if (targetCamera == null) return;
+
+        if (_lineMaterial == null)
+        {
+            Shader s = Shader.Find("Sprites/Default");
+            if (s != null)
+            {
+                _lineMaterial = new Material(s);
+            }
+        }
+
+        Transform parent = lineParent;
+        if (parent == null)
+        {
+            GameObject g = new GameObject("ProceduralLines");
+            g.transform.SetParent(transform, false);
+            parent = g.transform;
+            lineParent = parent;
+        }
+
+        Bounds b = ViewBounds();
+        b.Expand(new Vector3(6f, 6f, 0f));
+
+        int layers = Mathf.Max(1, lineLayerCount);
+        int perLayer = Mathf.Max(1, linesPerLayer);
+
+        for (int layer = 0; layer < layers; layer++)
+        {
+            float baseAngle;
+            float angleJitter;
+            if (layer % 2 == 0)
+            {
+                baseAngle = 25f;
+                angleJitter = 35f;
+            }
+            else
+            {
+                baseAngle = 110f;
+                angleJitter = 45f;
+            }
+
+            for (int i = 0; i < perLayer; i++)
+            {
+                GameObject g = new GameObject("Line_" + layer + "_" + i);
+                g.transform.SetParent(parent, false);
+                LineRenderer lr = g.AddComponent<LineRenderer>();
+                lr.positionCount = 2;
+                lr.useWorldSpace = true;
+                lr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                lr.receiveShadows = false;
+                lr.textureMode = LineTextureMode.Stretch;
+                lr.alignment = LineAlignment.TransformZ;
+                if (_lineMaterial != null)
+                {
+                    lr.material = _lineMaterial;
+                }
+
+                float angleDeg = baseAngle + Random.Range(-angleJitter, angleJitter);
+                float rad = angleDeg * Mathf.Deg2Rad;
+                Vector2 dir = new Vector2(Mathf.Cos(rad), Mathf.Sin(rad)).normalized;
+
+                Vector3 center = new Vector3(
+                    Random.Range(b.min.x, b.max.x),
+                    Random.Range(b.min.y, b.max.y),
+                    0f
+                );
+
+                float length = Random.Range(lineLengthMin, lineLengthMax);
+                float width = Random.Range(lineWidthMin, lineWidthMax);
+
+                float moveAmp = lineMoveAmplitude * Random.Range(0.4f, 1.2f);
+                float speed = Random.Range(lineMoveSpeedMin, lineMoveSpeedMax);
+                float phase = Random.Range(0f, Mathf.PI * 2f);
+
+                int pIndex = palette != null && palette.Length > 0 ? Random.Range(0, palette.Length) : 0;
+                float alpha = Random.Range(lineAlphaMin, lineAlphaMax);
+
+                ProceduralLine pl = new ProceduralLine();
+                pl.center = center;
+                pl.dir = dir;
+                pl.length = length;
+                pl.width = width;
+                pl.moveAmplitude = moveAmp;
+                pl.moveSpeed = speed;
+                pl.phase = phase;
+                pl.paletteIndex = pIndex;
+                pl.alpha = alpha;
+                pl.lr = lr;
+
+                _proceduralLines.Add(pl);
+            }
+        }
+
+        UpdateProceduralLines();
+    }
+
+    void UpdateProceduralLines()
+    {
+        if (_proceduralLines == null || _proceduralLines.Count == 0) return;
+
+        float t = Time.time;
+        foreach (var line in _proceduralLines)
+        {
+            if (line.lr == null) continue;
+
+            Vector2 normal = new Vector2(-line.dir.y, line.dir.x);
+            float offset = Mathf.Sin(t * line.moveSpeed + line.phase) * line.moveAmplitude;
+            Vector3 center = line.center + (Vector3)(normal * offset);
+
+            Vector3 p0 = center - (Vector3)line.dir * line.length * 0.5f;
+            Vector3 p1 = center + (Vector3)line.dir * line.length * 0.5f;
+
+            line.lr.startWidth = line.width;
+            line.lr.endWidth = line.width;
+            line.lr.SetPosition(0, p0);
+            line.lr.SetPosition(1, p1);
+        }
+
+        UpdateProceduralLinesColors();
+    }
+
+    void UpdateProceduralLinesColors()
+    {
+        if (_proceduralLines == null || _proceduralLines.Count == 0) return;
+        if (palette == null || palette.Length == 0) return;
+
+        foreach (var line in _proceduralLines)
+        {
+            if (line.lr == null) continue;
+            int idx = Mathf.Abs(line.paletteIndex) % palette.Length;
+            Color baseCol = palette[idx];
+            baseCol.a = line.alpha;
+            line.lr.startColor = baseCol;
+            line.lr.endColor = baseCol;
         }
     }
 
@@ -653,7 +760,6 @@ public class BackgroundArtManager : MonoBehaviour
             : null;
         BackgroundTheme to = themes[newIndex];
 
-        // 1. 替换大元素 sprite（因为它们一直在动，形状跳变会被运动+颜色渐变软化）
         if (backgroundElements != null && to.elementSprites != null)
         {
             int len = Mathf.Min(backgroundElements.Length, to.elementSprites.Length);
@@ -670,13 +776,11 @@ public class BackgroundArtManager : MonoBehaviour
 
         _currentThemeIndex = newIndex;
 
-        // 2. 准备 camera 颜色插值
         Color camFrom = targetCamera != null ? targetCamera.backgroundColor : Color.black;
-        Color camTo   = to.cameraColor;
+        Color camTo = to.cameraColor;
 
-        // 3. palette 插值（小 shapes 用）
         Color[] paletteFrom = palette != null ? (Color[])palette.Clone() : null;
-        Color[] paletteTo   = to.themePalette != null && to.themePalette.Length > 0
+        Color[] paletteTo = to.themePalette != null && to.themePalette.Length > 0
             ? to.themePalette
             : paletteFrom;
 
@@ -687,13 +791,11 @@ public class BackgroundArtManager : MonoBehaviour
             float t = Mathf.Clamp01(time / lerpTime);
             float k = themeTransitionCurve != null ? themeTransitionCurve.Evaluate(t) : t;
 
-            // camera color
             if (targetCamera != null)
             {
                 targetCamera.backgroundColor = Color.Lerp(camFrom, camTo, k);
             }
 
-            // palette
             if (paletteFrom != null && paletteTo != null &&
                 paletteFrom.Length > 0 && paletteTo.Length > 0)
             {
@@ -706,10 +808,10 @@ public class BackgroundArtManager : MonoBehaviour
                 palette = mixed;
             }
 
+            UpdateProceduralLinesColors();
             yield return null;
         }
 
-        // 最终确保 camera 和 palette 是目标值
         if (targetCamera != null)
         {
             targetCamera.backgroundColor = camTo;
@@ -719,6 +821,7 @@ public class BackgroundArtManager : MonoBehaviour
             palette = (Color[])paletteTo.Clone();
         }
 
+        UpdateProceduralLinesColors();
         _themeTransitionRunning = false;
     }
 }

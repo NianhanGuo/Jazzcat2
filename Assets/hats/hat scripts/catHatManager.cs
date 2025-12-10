@@ -4,26 +4,29 @@ using UnityEngine;
 public class CatHatManager : MonoBehaviour
 {
     [Header("Hat Settings")]
-    public Transform hatAnchorRight;      // hat position when cat faces right
-    public Transform hatAnchorLeft;       // hat position when cat faces left
-    public List<Sprite> hatSprites;       // hat library
-    public int hatSortingOrderOffset = 1; // hat renders above cat
+    public Transform hatAnchorRight;
+    public Transform hatAnchorLeft;
+    public List<Sprite> hatSprites;
+    public int hatSortingOrderOffset = 1;
+
+    [Header("Per-Hat Position Offsets")]
+    public List<Vector2> hatPositionOffsets;
 
     private SpriteRenderer hatRenderer;
     private SpriteRenderer catSpriteRenderer;
     private List<int> remainingIndices = new List<int>();
 
+    private int currentHatIndex = -1;
+    private Vector2 currentHatOffset = Vector2.zero;
+
     void Awake()
     {
-        // get the cat's main SpriteRenderer (the one that flips)
         catSpriteRenderer = GetComponentInChildren<SpriteRenderer>();
 
-        // choose an initial parent for the hat (prefer right, then left, then self)
         Transform initialParent = hatAnchorRight != null
             ? hatAnchorRight
             : (hatAnchorLeft != null ? hatAnchorLeft : transform);
 
-        // create the hat object as a child of that parent
         GameObject hatObj = new GameObject("CatHatSprite");
         hatObj.transform.SetParent(initialParent, false);
         hatObj.transform.localPosition = Vector3.zero;
@@ -31,7 +34,6 @@ public class CatHatManager : MonoBehaviour
         hatRenderer = hatObj.AddComponent<SpriteRenderer>();
         hatRenderer.enabled = false;
 
-        // match sorting layer / order and initial flip
         if (catSpriteRenderer != null)
         {
             hatRenderer.sortingLayerID = catSpriteRenderer.sortingLayerID;
@@ -72,16 +74,29 @@ public class CatHatManager : MonoBehaviour
         Sprite chosen = hatSprites[hatIndex];
         if (chosen == null) return;
 
+        currentHatIndex = hatIndex;
+
+        currentHatOffset = Vector2.zero;
+        if (hatPositionOffsets != null &&
+            hatIndex >= 0 &&
+            hatIndex < hatPositionOffsets.Count)
+        {
+            currentHatOffset = hatPositionOffsets[hatIndex];
+        }
+
         hatRenderer.sprite = chosen;
         hatRenderer.enabled = true;
 
-        // NEW: register this hat with the gallery system
         HatGalleryUI.RegisterHat(hatIndex);
 
-        // make sure position + facing are correct when the hat is first equipped
         UpdateAnchor();
         if (catSpriteRenderer != null)
             hatRenderer.flipX = catSpriteRenderer.flipX;
+
+        if (BackgroundArtManager.Instance != null)
+        {
+            BackgroundArtManager.Instance.ApplyTheme(hatIndex, 3f);
+        }
     }
 
     void LateUpdate()
@@ -94,10 +109,8 @@ public class CatHatManager : MonoBehaviour
         if (!hatRenderer.enabled) return;
         if (catSpriteRenderer == null) return;
 
-        // which way is the cat facing?
         bool facingLeft = catSpriteRenderer.flipX;
 
-        // pick target anchor based on facing direction (with fallback)
         Transform targetAnchor = null;
         if (facingLeft)
             targetAnchor = hatAnchorLeft != null ? hatAnchorLeft : hatAnchorRight;
@@ -106,16 +119,16 @@ public class CatHatManager : MonoBehaviour
 
         if (targetAnchor == null) return;
 
-        // parent hat under the correct anchor
         if (hatRenderer.transform.parent != targetAnchor)
         {
             hatRenderer.transform.SetParent(targetAnchor, false);
         }
 
-        // snap to anchor origin
-        hatRenderer.transform.localPosition = Vector3.zero;
+        Vector3 localPos = Vector3.zero;
+        localPos.x += currentHatOffset.x;
+        localPos.y += currentHatOffset.y;
+        hatRenderer.transform.localPosition = localPos;
 
-        // mirror hat horizontally with the cat
         hatRenderer.flipX = catSpriteRenderer.flipX;
     }
 }

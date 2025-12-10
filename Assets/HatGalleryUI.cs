@@ -8,16 +8,16 @@ public class HatGalleryUI : MonoBehaviour
     public static HatGalleryUI Instance { get; private set; }
 
     [Header("References")]
-    public CatHatManager catHatManager;   // drag your cat here
-    public Transform galleryParent;       // parent object for hat icons
-    public GameObject hatSlotPrefab;      // UI prefab with an Image component
+    public CatHatManager catHatManager;   // drag cat placeholder here
+    public Transform galleryParent;       // Gallery parent (RectTransform)
+    public GameObject hatSlotPrefab;      // Hatslot prefab (with HatSlotUI)
 
     [Header("Texts")]
-    public TextMeshProUGUI hatCountText;       // "Hats: X / 19"
-    public TextMeshProUGUI allHatsMessageText; // "You got all hats!"
+    public TextMeshProUGUI hatCountText;       // "Hats: X/19"
+    public TextMeshProUGUI allHatsMessageText; // "You collected all hats, congrats!"
     public TextMeshProUGUI notesCountText;     // "Notes caught: X"
 
-    bool[] collected;   // which hats have been collected
+    bool[] collected;
 
     void Awake()
     {
@@ -34,7 +34,7 @@ public class HatGalleryUI : MonoBehaviour
         }
     }
 
-    // Called by CatHatManager when a hat is picked
+    // Called from CatHatManager when a hat is equipped
     public static void RegisterHat(int hatIndex)
     {
         if (Instance == null || Instance.collected == null)
@@ -46,7 +46,7 @@ public class HatGalleryUI : MonoBehaviour
         Instance.collected[hatIndex] = true;
     }
 
-    // This runs when the GameOver panel turns ON (SetActive(true))
+    // Runs when game end panel is activated
     void OnEnable()
     {
         RefreshUI();
@@ -57,7 +57,7 @@ public class HatGalleryUI : MonoBehaviour
         if (catHatManager == null || catHatManager.hatSprites == null || collected == null)
             return;
 
-        // --- clear old gallery items ---
+        // clear old children
         if (galleryParent != null)
         {
             for (int i = galleryParent.childCount - 1; i >= 0; i--)
@@ -69,7 +69,6 @@ public class HatGalleryUI : MonoBehaviour
         int totalHats = catHatManager.hatSprites.Count;
         int collectedCount = 0;
 
-        // --- create an icon for each collected hat ---
         for (int i = 0; i < totalHats; i++)
         {
             if (!collected[i]) continue;
@@ -78,18 +77,22 @@ public class HatGalleryUI : MonoBehaviour
 
             if (galleryParent != null && hatSlotPrefab != null)
             {
-                GameObject slot = Instantiate(hatSlotPrefab, galleryParent);
-                Image img = slot.GetComponentInChildren<Image>();
-                if (img != null)
-                    img.sprite = catHatManager.hatSprites[i];
+                GameObject slotObj = Instantiate(hatSlotPrefab, galleryParent);
+                HatSlotUI slotUI = slotObj.GetComponent<HatSlotUI>();
+
+                if (slotUI != null && slotUI.hatIcon != null)
+                {
+                    slotUI.hatIcon.sprite = catHatManager.hatSprites[i];
+                    slotUI.hatIcon.enabled = true;
+                }
             }
         }
 
-        // --- text: hats X / 19 ---
+        // Hats: X / N
         if (hatCountText != null)
             hatCountText.text = $"Hats: {collectedCount}/{totalHats}";
 
-        // --- text: congrats if all ---
+        // Congrats if all
         if (allHatsMessageText != null)
         {
             if (collectedCount == totalHats)
@@ -98,10 +101,13 @@ public class HatGalleryUI : MonoBehaviour
                 allHatsMessageText.text = "";
         }
 
-        // --- text: how many notes caught ---
-        if (notesCountText != null && NoteCounter.Instance != null)
+        // Notes caught
+        if (notesCountText != null)
         {
-            notesCountText.text = "Notes caught: " + NoteCounter.Instance.Count.ToString();
+            if (NoteCounter.Instance != null)
+                notesCountText.text = "Notes caught: " + NoteCounter.Instance.Count;
+            else
+                notesCountText.text = "Notes caught: 0";
         }
     }
 }
