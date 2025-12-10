@@ -199,8 +199,8 @@ public class MusicLayerManager : MonoBehaviour
         src.volume = 0f;
         src.spatialBlend = 0f;
 
-        int semi = PickTransposeSemitone(rng.NextDouble() < nonZeroTransposeProbability);
-        src.pitch = Mathf.Pow(2f, semi / 12f);
+        int semi = 0;
+        src.pitch = 1f;
 
         float targetVol = Mathf.Clamp01(baseVolume + Rand(-volumeJitter, volumeJitter));
 
@@ -296,8 +296,8 @@ public class MusicLayerManager : MonoBehaviour
         if (layer == null || layer.set == null || layer.set.variants == null || layer.set.variants.Length == 0)
             return;
 
-        bool changeVariant = rng.NextDouble() < 0.6;
-        bool retune = rng.NextDouble() < 0.9;
+        bool changeVariant = false;
+        bool retune = false;
 
         if (changeVariant && layer.set.variants.Length > 1)
         {
@@ -330,14 +330,9 @@ public class MusicLayerManager : MonoBehaviour
 
         if (retune)
         {
-            int newSemi = layer.semitone;
-            for (int tries = 0; tries < 4; tries++)
-            {
-                int cand = PickTransposeSemitone(rng.NextDouble() < nonZeroTransposeProbability);
-                if (cand != layer.semitone) { newSemi = cand; break; }
-            }
+            int newSemi = 0;
             layer.semitone = newSemi;
-            layer.src.pitch = Mathf.Pow(2f, newSemi / 12f);
+            layer.src.pitch = 1f;
         }
 
         float newTarget = Mathf.Clamp01(baseVolume + Rand(-volumeJitter, volumeJitter));
