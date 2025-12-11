@@ -96,7 +96,7 @@ public class CatController2D : MonoBehaviour
 
     void Update()
     {
-        xInput = Input.GetAxisRaw("Horizontal");
+        xInput = FindObjectOfType<PowerupSystem>().ProcessInput(Input.GetAxisRaw("Horizontal"));
         if (Input.GetButtonDown("Jump") || Input.GetKeyDown(jumpKey))
             bufferCounter = jumpBuffer;
         jumpHeld = Input.GetButton("Jump") || Input.GetKey(jumpKey);
