@@ -38,6 +38,9 @@ public class MusicLayerManager : MonoBehaviour
     readonly List<ActiveLayer> layers = new List<ActiveLayer>();
     System.Random rng = new System.Random();
 
+    AudioSource introSource;
+    bool introStopped;
+
     void Awake()
     {
         if (Instance != null && Instance != this)
@@ -50,6 +53,7 @@ public class MusicLayerManager : MonoBehaviour
 
     void Start()
     {
+        PlayIntroLead();
     }
 
     IEnumerator AutoEvolveLoop()
@@ -66,8 +70,73 @@ public class MusicLayerManager : MonoBehaviour
         }
     }
 
+    void PlayIntroLead()
+    {
+        if (libraries == null || libraries.Length == 0) return;
+
+        List<int> libCandidates = new List<int>();
+        for (int i = 0; i < libraries.Length; i++)
+        {
+            if (LibraryHasLead(i)) libCandidates.Add(i);
+        }
+        if (libCandidates.Count == 0) return;
+
+        int libIndex = libCandidates[rng.Next(0, libCandidates.Count)];
+        var set = libraries[libIndex];
+        if (set == null || set.variants == null || set.variants.Length == 0) return;
+
+        List<int> varCandidates = new List<int>();
+        for (int i = 0; i < set.variants.Length; i++)
+        {
+            var c = set.variants[i];
+            if (!c) continue;
+            if (!set.GetIsLead(i)) continue;
+            varCandidates.Add(i);
+        }
+        if (varCandidates.Count == 0) return;
+
+        int varIndex = varCandidates[rng.Next(0, varCandidates.Count)];
+        var clip = set.variants[varIndex];
+        if (!clip) return;
+
+        var go = new GameObject("IntroLead");
+        go.transform.SetParent(transform, false);
+
+        var src = go.AddComponent<AudioSource>();
+        src.clip = clip;
+        src.loop = true;
+        src.playOnAwake = false;
+        src.outputAudioMixerGroup = outputGroup;
+        src.volume = 0f;
+        src.spatialBlend = 0f;
+
+        introSource = src;
+
+        double startAt = conductor ? conductor.PeekNextBar() : AudioSettings.dspTime + 0.1;
+        startAt += startPhaseJitter * Rand(0f, 1f);
+        src.PlayScheduled(startAt);
+        if (conductor) conductor.ConsumeNextBarAndAdvance();
+
+        float targetVol = Mathf.Clamp01(baseVolume + Rand(-volumeJitter, volumeJitter));
+        StartCoroutine(FadeTo(src, 0f, targetVol, fadeInTime));
+    }
+
+    IEnumerator FadeOutIntroLead()
+    {
+        if (introSource == null) yield break;
+        yield return FadeTo(introSource, introSource.volume, 0f, fadeOutTime);
+        Destroy(introSource.gameObject);
+        introSource = null;
+    }
+
     public void OnNoteCollected(NoteInstrument requested)
     {
+        if (!introStopped && introSource != null)
+        {
+            introStopped = true;
+            StartCoroutine(FadeOutIntroLead());
+        }
+
         int libIndex = (requested == NoteInstrument.RandomAny)
             ? WeightedPickLibrary(false, false)
             : (int)requested;
