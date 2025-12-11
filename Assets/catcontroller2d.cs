@@ -28,6 +28,10 @@ public class CatController2D : MonoBehaviour
     public bool autoFindAnimatorOnChildren = true;
     public float groundCancelGrace = 0.06f;
 
+    [Header("Walk / Idle Animation")]
+    public string walkStateName = "CatWalk";
+    public string idleStateName = "CatIdle";
+
     [Header("Idle Visual (without Animator)")]
     public SpriteRenderer spriteRenderer;
     public Sprite idleSprite;
@@ -50,6 +54,8 @@ public class CatController2D : MonoBehaviour
 
     float groundCancelTimer;
     int jumpStateHash;
+    int walkStateHash;
+    int idleStateHash;
 
     Vector2 GetVel() => rb.linearVelocity;
     void SetVel(Vector2 v)
@@ -70,8 +76,6 @@ public class CatController2D : MonoBehaviour
         if (!spriteRenderer)
             spriteRenderer = GetComponentInChildren<SpriteRenderer>();
 
-        if (animator) animator.enabled = false;
-
         if (spriteRenderer && idleSprite)
             spriteRenderer.sprite = idleSprite;
 
@@ -80,11 +84,14 @@ public class CatController2D : MonoBehaviour
         animatorEnabledByUs = false;
         groundCancelTimer = 0f;
         jumpStateHash = Animator.StringToHash(jumpStateName);
+        walkStateHash = 0;
+        idleStateHash = 0;
     }
 
     void Start()
     {
-        if (animator) animator.enabled = false;
+        if (animator)
+            animator.enabled = true;
     }
 
     void Update()
@@ -99,15 +106,15 @@ public class CatController2D : MonoBehaviour
 
         Bounds b = col.bounds;
         Vector2 boxCenter = new Vector2(b.center.x, b.min.y + 0.02f);
-        Vector2 boxSize   = new Vector2(b.size.x * 0.9f, 0.08f);
-        float   castDist  = 0.04f;
+        Vector2 boxSize = new Vector2(b.size.x * 0.9f, 0.08f);
+        float castDist = 0.04f;
         RaycastHit2D hit = Physics2D.BoxCast(boxCenter, boxSize, 0f, Vector2.down, castDist, groundMask);
         isGrounded = hit.collider != null;
 
         if (groundCancelTimer > 0f) groundCancelTimer -= Time.deltaTime;
 
         if (isGrounded) coyoteCounter = coyoteTime;
-        else            coyoteCounter -= Time.deltaTime;
+        else coyoteCounter -= Time.deltaTime;
         if (bufferCounter > 0f) bufferCounter -= Time.deltaTime;
 
         if (bufferCounter > 0f && (isGrounded || coyoteCounter > 0f))
@@ -133,6 +140,7 @@ public class CatController2D : MonoBehaviour
         }
 
         HandleJumpAnimation();
+        HandleWalkIdleAnimation();
     }
 
     void FixedUpdate()
@@ -185,10 +193,9 @@ public class CatController2D : MonoBehaviour
 
             if (animatorEnabledByUs)
             {
-                animator.enabled = false;
                 animatorEnabledByUs = false;
 
-                if (spriteRenderer && idleSprite)
+                if (spriteRenderer && idleSprite && !animator.runtimeAnimatorController)
                     spriteRenderer.sprite = idleSprite;
             }
             return;
@@ -215,6 +222,41 @@ public class CatController2D : MonoBehaviour
         }
     }
 
+    void HandleWalkIdleAnimation()
+    {
+        if (!animator || !animator.runtimeAnimatorController) return;
+        if (jumpAnimPlaying) return;
+
+        bool moving = Mathf.Abs(xInput) > 0.01f && isGrounded;
+
+        if (moving)
+        {
+            if (!string.IsNullOrEmpty(walkStateName))
+            {
+                if (walkStateHash == 0) walkStateHash = Animator.StringToHash(walkStateName);
+                AnimatorStateInfo st = animator.GetCurrentAnimatorStateInfo(0);
+                if (st.shortNameHash != walkStateHash)
+                {
+                    animator.speed = 1f;
+                    animator.Play(walkStateHash, 0, 0f);
+                }
+            }
+        }
+        else
+        {
+            if (!string.IsNullOrEmpty(idleStateName))
+            {
+                if (idleStateHash == 0) idleStateHash = Animator.StringToHash(idleStateName);
+                AnimatorStateInfo st = animator.GetCurrentAnimatorStateInfo(0);
+                if (st.shortNameHash != idleStateHash)
+                {
+                    animator.speed = 1f;
+                    animator.Play(idleStateHash, 0, 0f);
+                }
+            }
+        }
+    }
+
     void OnDrawGizmosSelected()
     {
         Gizmos.color = Color.yellow;
@@ -222,7 +264,7 @@ public class CatController2D : MonoBehaviour
         {
             Bounds b = col.bounds;
             Vector2 boxCenter = new Vector2(b.center.x, b.min.y + 0.02f);
-            Vector2 boxSize   = new Vector2(b.size.x * 0.9f, 0.08f);
+            Vector2 boxSize = new Vector2(b.size.x * 0.9f, 0.08f);
             Gizmos.DrawWireCube(boxCenter, boxSize);
         }
         else
